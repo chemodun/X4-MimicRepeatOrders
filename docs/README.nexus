@@ -50,6 +50,14 @@ Video demonstration of the Mimic Repeat Orders. Version 1.00
 [/list]
 [size=3][u][b]Changelog[/b][/u][/size]
 
+[size=3][u][i][1.01] - 2025-11-04[/i][/u][/size]
+[list]
+[*] Fixed
+[list]
+[*] On multiple events some was skipped due to incorrect queue handling.
+[*] Incompatibility with 8.00 (up to HF3)
+[/list]
+[/list]
 [size=3][u][i][1.00] - 2025-11-04[/i][/u][/size]
 [list]
 [*] Added

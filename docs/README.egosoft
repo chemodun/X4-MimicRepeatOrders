@@ -49,6 +49,14 @@ Simple use the usual context menu options to assign a ship to commander with Rep
 [/list]
 [size=130][u]Changelog[/u][/size]
 
+[size=125][u][1.01] - 2025-11-04[/u][/size]
+[list]
+[*] Fixed
+[list]
+[*] On multiple events some was skipped due to incorrect queue handling.
+[*] Incompatibility with 8.00 (up to HF3)
+[/list]
+[/list]
 [size=125][u][1.00] - 2025-11-04[/u][/size]
 [list]
 [*] Added
