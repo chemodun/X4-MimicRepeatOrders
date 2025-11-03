@@ -60,20 +60,27 @@
           </actions>
         </cue>
 
-        <cue name="Repeat_Orders_Commanders_Orders_Changed" instantiate="true">
+        <cue name="Repeat_Orders_Commanders_Subordinate_Removed" instantiate="true">
           <conditions>
-            <check_any>
-              <event_object_order_ready group="@$repeatOrdersCommanders" check="false" />
-              <event_object_order_cancelled group="@$repeatOrdersCommanders" check="false" />
-              <event_object_order_finished group="@$repeatOrdersCommanders" check="false" />
-              <event_object_order_param_edited group="@$repeatOrdersCommanders" check="false" />
-            </check_any>
+            <event_object_subordinate_removed group="@$repeatOrdersCommanders" check="false" />
+            <check_value value="@event.param.hasorderloop" />
           </conditions>
           <actions>
             <debug_text
-              text="'MimicRepeatOrders: Repeat_Orders_Commanders_Orders_Changed invoked event %s for object: %s. With params: %s, %s, %s'.[@event.name, @event.object.debugname, @event.param, @event.param2, @event.param3]"
+              text="'MimicRepeatOrders: Repeat_Orders_Commanders_Subordinate_Removed: subordinate %s was removed from commander %s, with mimic subordinates %s'.[@event.param.debugname, @event.object.debugname, @event.object.subordinates.{assignment.assist}.count]"
               chance="100"
               filter="scripts" />
+            <do_if value="@event.object.subordinates.{assignment.assist}.count le 0">
+              <remove_from_group group="$repeatOrdersCommanders" object="@event.object" />
+            </do_if>
+            <create_list name="$targetList" />
+            <append_to_list name="$targetList" exact="@event.param" />
+            <set_value name="$args"
+              exact="table[
+                $command            = 'clear_orders',
+                $targets            = $targetList,
+              ]" />
+            <include_actions ref="Send_Request" />
           </actions>
         </cue>
 
@@ -99,7 +106,7 @@
                 $source             = @event.param2,
                 $targets            = $targetList,
               ]" />
-            <do_if value="@event.param2 == null and @$repeatOrdersCommanders and @$repeatOrdersCommanders.indexof.{@event.param2} le 0">
+            <do_if value="@event.param2 != null and @$repeatOrdersCommanders != null and @$repeatOrdersCommanders.indexof.{@event.param2} le 0">
               <add_to_group groupname="$repeatOrdersCommanders" object="@event.param2" />
             </do_if>
             <include_actions ref="Send_Request" />
@@ -120,6 +127,18 @@
             <debug_text text="'MimicRepeatOrders: Process_Results invoked with result: %s'.[$result]" chance="100" filter="scripts" />
             <do_if value="$result? and @$result != null">
               <debug_text text="'MimicRepeatOrders: last command %s result: %s'.[@$result.$command, $result]" chance="100" filter="scripts" />
+              <do_if value="@$result.$command == 'refresh_commanders'">
+                <set_value name="$listCommanders" exact="$result.$list" />
+                <do_for_each name="$commander" in="@$repeatOrdersCommanders.list">
+                  <do_if value="$listCommanders.indexof.{@$commander} le 0">
+                    <debug_text
+                      text="'MimicRepeatOrders: Process_Results removing commander %s as it is no longer valid or has no mimic subordinates'.[@$commander.debugname]"
+                      chance="100" filter="scripts" />
+                    <remove_from_group group="$repeatOrdersCommanders" object="@$commander" />
+                  </do_if>
+                </do_for_each>
+                <remove_value name="$listCommanders" />
+              </do_if>
             </do_if>
           </actions>
         </cue>
