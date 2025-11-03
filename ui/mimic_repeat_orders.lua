@@ -52,6 +52,8 @@ ffi.cdef [[
   void ResetOrderLoop(UniverseID controllableid);
 	bool EnableOrder(UniverseID controllableid, size_t idx);
 
+
+	bool RemoveCommander2(UniverseID controllableid);
 	uint32_t GetNumAllCommanders(UniverseID controllableid, FleetUnitID fleetunitid);
 	const char* GetSubordinateGroupAssignment(UniverseID controllableid, int group);
 
@@ -66,6 +68,7 @@ local MimicRepeatOrders = {
     SingleSell = "",
   },
   sourceId = 0,
+  loopOrdersSkillLimit = 0,
   targetIds = {},
   repeatOrdersCommanders = {},
 }
@@ -285,15 +288,21 @@ function MimicRepeatOrders.isValidTargetShip(target)
   if not valid then
     return false, errorData
   end
-  local loopSkill = C.GetOrderLoopSkillLimit() * 3;
+  local loopSkill = MimicRepeatOrders.loopOrdersSkillLimit;
   local aiPilot = GetComponentData(ConvertStringToLuaID(tostring(targetId)), "assignedaipilot")
 	local aiPilotSkill = aiPilot and math.floor(C.GetEntityCombinedSkill(ConvertIDTo64Bit(aiPilot), nil, "aipilot")) or -1
+  debugTrace("trace","Target ship " .. getShipName(targetId) .. " has AI pilot skill " .. tostring(aiPilotSkill) .. ", required is " .. tostring(loopSkill))
   if aiPilotSkill < loopSkill then
     return false, { info = "TargetPilotSkillTooLow", detail = "skill=" .. tostring(aiPilotSkill) .. ", required=" .. tostring(loopSkill) }
   end
   return true
 end
 
+function MimicRepeatOrders.removeCommander(shipId)
+		C.RemoveCommander2(shipId)
+		C.CreateOrder(shipId, "Wait", true)
+		C.EnablePlannedDefaultOrder(shipId, false)
+end
 
 function MimicRepeatOrders.getArgs()
   MimicRepeatOrders.args = {}
@@ -315,141 +324,10 @@ function MimicRepeatOrders.getArgs()
   return false
 end
 
-
-function MimicRepeatOrders.showSourceAlert(errorData)
-
-  local sourceId = toUniverseId(MimicRepeatOrders.args.source)
-
-  local sourceName = getShipName(sourceId)
-  local options = {}
-  options.title = ReadText(1972092408, 10110)
-  local details = "error"
-  if errorData and type(errorData) == "table" and errorData.info then
-    if errorData.info == "InvalidShipID" then
-      details = ReadText(1972092408, 10121)
-    elseif errorData.info == "NotAShip" then
-      details = ReadText(1972092408, 10122)
-    elseif errorData.info == "NotPlayerShip" then
-      details = ReadText(1972092408, 10123)
-    elseif errorData.info == "ShipNotOperational" then
-      details = ReadText(1972092408, 10124)
-    elseif errorData.info == "NoCargoCapacity" then
-      details = ReadText(1972092408, 10125)
-    elseif errorData.info == "LoopNotEnabled" then
-      details = ReadText(1972092408, 10131)
-    elseif errorData.info == "NoRepeatOrders" then
-      details = ReadText(1972092408, 10132)
-    elseif errorData.info == "InvalidRepeatOrder" then
-      details = ReadText(1972092408, 10133)
-    end
-  end
-  local message = string.format(ReadText(1972092408, 10111), sourceName, details)
-  options.message = message
-
-  MimicRepeatOrders.alertMessage(options)
-end
-
-
-function MimicRepeatOrders.alertMessage(options)
-  local menu = MimicRepeatOrders.mapMenu
-  if type(menu) ~= "table" or type(menu.closeContextMenu) ~= "function" then
-    debugTrace("debug","alertMessage: Invalid menu instance")
-    return false, "Map menu instance is not available"
-  end
-  if type(Helper) ~= "table" then
-    debugTrace("debug","alertMessage: Helper UI utilities are not available")
-    return false, "Helper UI utilities are not available"
-  end
-
-  if type(options) ~= "table" then
-    return false, "Options parameter is not a table"
-  end
-
-  if options.title == nil then
-    return false, "Title option is required"
-  end
-
-  if options.message == nil then
-    return false, "Message option is required"
-  end
-
-  local width = options.width or Helper.scaleX(400)
-  local xoffset = options.xoffset or (Helper.viewWidth - width) / 2
-  local yoffset = options.yoffset or Helper.viewHeight / 2
-  local okLabel = options.okLabel or ReadText(1001, 14)
-
-  local title = options.title
-  local message = options.message
-
-  menu.closeContextMenu()
-
-  menu.contextMenuMode = "standing_orders_alert"
-  menu.contextMenuData = {
-    mode = "standing_orders_alert",
-    width = width,
-    xoffset = xoffset,
-    yoffset = yoffset,
-  }
-
-  local contextLayer = menu.contextFrameLayer or 2
-
-  menu.contextFrame = Helper.createFrameHandle(menu, {
-    x = xoffset - 2 * Helper.borderSize,
-    y = yoffset,
-    width = width + 2 * Helper.borderSize,
-    layer = contextLayer,
-    standardButtons = { close = true },
-    closeOnUnhandledClick = true,
-  })
-  local frame = menu.contextFrame
-  frame:setBackground("solid", { color = Color["frame_background_semitransparent"] })
-
-  local ftable = frame:addTable(5, { tabOrder = 1, x = Helper.borderSize, y = Helper.borderSize, width = width, reserveScrollBar = false, highlightMode = "off" })
-
-  local headerRow = ftable:addRow(false, { fixed = true })
-  headerRow[1]:setColSpan(5):createText(title, copyAndEnrichTable(Helper.headerRowCenteredProperties, { color = Color["text_warning"] }))
-
-  ftable:addEmptyRow(Helper.standardTextHeight / 2)
-
-  local messageRow = ftable:addRow(false, { fixed = true })
-  messageRow[1]:setColSpan(5):createText(message, {
-    halign = "center",
-    wordwrap = true,
-    color = Color["text_normal"]
-  })
-
-  ftable:addEmptyRow(Helper.standardTextHeight / 2)
-
-  local buttonRow = ftable:addRow(true, { fixed = true })
-  buttonRow[3]:createButton():setText(okLabel, { halign = "center" })
-  buttonRow[3].handlers.onClick = function ()
-    local shouldClose = true
-    if shouldClose then
-      menu.closeContextMenu("back")
-    end
-  end
-  ftable:setSelectedCol(3)
-
-  centerFrameVertically(frame)
-
-  frame:display()
-
-  return true
-end
-
-function MimicRepeatOrders.showTargetAlert()
-  local options = {}
-  options.title = ReadText(1972092408, 10310)
-  options.message = ReadText(1972092408, 10311)
-  MimicRepeatOrders.alertMessage(options)
-end
-
-
 function MimicRepeatOrders.cloneOrdersPrepare()
   MimicRepeatOrders.targetIds = {}
   local valid, errorData = MimicRepeatOrders.isValidSourceShip()
   if not valid then
-    MimicRepeatOrders.showSourceAlert(errorData)
     return false, errorData
   end
   local args = MimicRepeatOrders.args or {}
@@ -461,11 +339,13 @@ function MimicRepeatOrders.cloneOrdersPrepare()
     local valid, errorData = MimicRepeatOrders.isValidTargetShip(targetId)
     if valid then
       targetIds[#targetIds + 1] = targetId
+    else
+      debugTrace("debug","Target ship " .. getShipName(targetId) .. " is invalid: " .. tostring(errorData and errorData.info))
+      MimicRepeatOrders.removeCommander(targetId)
     end
   end
   if #targetIds == 0 then
     MimicRepeatOrders.sourceId = 0
-    MimicRepeatOrders.showTargetAlert()
     return false, { info = "NoValidTargets" }
   end
   MimicRepeatOrders.targetIds = targetIds
@@ -694,7 +574,16 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
         end
         if #subordinates > 0 then
           debugTrace("debug"," Commander " .. getShipName(commanderId) .. " has " .. tostring(#subordinates) .. " subordinates to check")
-          MimicRepeatOrders.targetIds = subordinates
+          MimicRepeatOrders.targetIds = {}
+          for j = 1, #subordinates do
+            local valid, errorData = MimicRepeatOrders.isValidTargetShip(subordinates[j])
+            if not valid then
+              debugTrace("debug","  Subordinate " .. getShipName(subordinates[j]) .. " is invalid, removing from list")
+              MimicRepeatOrders.removeCommander(subordinates[j])
+            else
+              MimicRepeatOrders.targetIds[#MimicRepeatOrders.targetIds + 1] = subordinates[j]
+            end
+          end
           MimicRepeatOrders.cloneOrdersExecute(true)
         end
       else
@@ -757,6 +646,8 @@ function MimicRepeatOrders.Init()
   MimicRepeatOrders.mapMenu = Lib.Get_Egosoft_Menu("MapMenu")
   debugTrace("debug","MapMenu is " .. tostring(MimicRepeatOrders.mapMenu))
   MimicRepeatOrders.OrderNamesCollect()
+  MimicRepeatOrders.loopOrdersSkillLimit = C.GetOrderLoopSkillLimit() * 20
+  SetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersLoopOrdersSkillLimit", MimicRepeatOrders.loopOrdersSkillLimit)
   AddUITriggeredEvent("MimicRepeatOrders", "Reloaded")
 end
 
