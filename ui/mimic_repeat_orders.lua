@@ -49,6 +49,7 @@ ffi.cdef [[
 	uint32_t CreateOrder(UniverseID controllableid, const char* orderid, bool default);
 	bool EnablePlannedDefaultOrder(UniverseID controllableid, bool checkonly);
 	bool SetOrderLoop(UniverseID controllableid, size_t orderidx, bool checkonly);
+  void ResetOrderLoop(UniverseID controllableid);
 	bool EnableOrder(UniverseID controllableid, size_t idx);
 
 	uint32_t GetNumAllCommanders(UniverseID controllableid, FleetUnitID fleetunitid);
@@ -255,7 +256,10 @@ end
 
 
 function MimicRepeatOrders.isValidSourceShip()
-  local sourceId = MimicRepeatOrders.sourceId or toUniverseId(MimicRepeatOrders.args.source)
+  local sourceId = MimicRepeatOrders.sourceId
+  if MimicRepeatOrders.args ~= nil and MimicRepeatOrders.args.source ~= nil then
+    sourceId = toUniverseId(MimicRepeatOrders.args.source)
+  end
   local valid, errorData = MimicRepeatOrders.checkShip(sourceId)
   if not valid then
     return false, errorData
@@ -442,6 +446,7 @@ end
 
 
 function MimicRepeatOrders.cloneOrdersPrepare()
+  MimicRepeatOrders.targetIds = {}
   local valid, errorData = MimicRepeatOrders.isValidSourceShip()
   if not valid then
     MimicRepeatOrders.showSourceAlert(errorData)
@@ -587,6 +592,13 @@ function MimicRepeatOrders.cloneOrdersReset()
   MimicRepeatOrders.targetIds = {}
 end
 
+function MimicRepeatOrders.countSubordinates()
+  local sourceId = MimicRepeatOrders.sourceId
+  local source = ConvertStringToLuaID(tostring(sourceId))
+  local subordinatesList = GetSubordinates(source)
+  return #subordinatesList
+end
+
 function MimicRepeatOrders.GetSubordinates()
   local sourceId = MimicRepeatOrders.sourceId
   local source = ConvertStringToLuaID(tostring(sourceId))
@@ -606,6 +618,32 @@ function MimicRepeatOrders.GetSubordinates()
   return subordinates
 end
 
+function MimicRepeatOrders.clearRepeatOrders(skipResult)
+  if MimicRepeatOrders.args.targets ~= nil and type(MimicRepeatOrders.args.targets) == "table" then
+    MimicRepeatOrders.targetIds = {}
+    for i = 1, #MimicRepeatOrders.args.targets do
+      local targetId = toUniverseId(MimicRepeatOrders.args.targets[i])
+      MimicRepeatOrders.targetIds[#MimicRepeatOrders.targetIds + 1] = targetId
+    end
+  end
+  if MimicRepeatOrders.targetIds ~= nil and type(MimicRepeatOrders.targetIds) == "table" and #MimicRepeatOrders.targetIds > 0 then
+    for i = 1, #MimicRepeatOrders.targetIds do
+      local targetId = MimicRepeatOrders.targetIds[i]
+      debugTrace("debug","Clearing repeat orders on target " .. getShipName(targetId))
+      if not C.RemoveAllOrders(targetId) then
+        debugTrace("debug","failed to clear target order queue for " .. getShipName(targetId))
+      else
+        C.CreateOrder(targetId, "Wait", true)
+        C.EnablePlannedDefaultOrder(targetId, false)
+        C.ResetOrderLoop(targetId)
+      end
+    end
+  end
+  if skipResult == nil  or skipResult == false then
+    MimicRepeatOrders.reportSuccess({ info = "OrdersCleared", details = string.format("%d targets cleared", #MimicRepeatOrders.targetIds) })
+  end
+end
+
 function MimicRepeatOrders.repeatOrdersCommandersRefresh()
   local commanders =  MimicRepeatOrders.args.list or {}
   local checkSubordinates = MimicRepeatOrders.args.checkSubordinates == 1
@@ -617,8 +655,9 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
     if (commanderId ~= nil) then
       MimicRepeatOrders.sourceId = commanderId
       local valid, errorData = MimicRepeatOrders.isValidSourceShip()
-      debugTrace("debug"," Refreshing commander " .. getShipName(commanderId) .. " validity: " .. tostring(valid) .. ", error: " .. tostring(errorData and errorData.info))
-      if valid then
+      local subordinatesCount = MimicRepeatOrders.countSubordinates()
+      debugTrace("debug"," Refreshing commander " .. getShipName(commanderId) .. " validity: " .. tostring(valid) .. ", error: " .. tostring(errorData and errorData.info) .. ", subordinates: " .. tostring(subordinatesCount))
+      if valid and subordinatesCount > 0 then
         local subordinates = {}
         local commanderOrders = MimicRepeatOrders.getRepeatOrders(commanderId)
         if MimicRepeatOrders.repeatOrdersCommanders[commanderId]  ==  nil then
@@ -637,7 +676,7 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
           local cargoCapacity = MimicRepeatOrders.getCargoCapacity(commanderId)
           if MimicRepeatOrders.isOrdersEqual(commanderOrders, cargoCapacity, nil, cargoCapacity, MimicRepeatOrders.repeatOrdersCommanders[commanderId]) then
 
-              debugTrace("debug"," Commander " .. getShipName(commanderId) .. " orders unchanged")
+            debugTrace("debug"," Commander " .. getShipName(commanderId) .. " orders unchanged")
             if (checkSubordinates) then
               subordinates = MimicRepeatOrders.GetSubordinates()
             end
@@ -659,7 +698,12 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
           MimicRepeatOrders.cloneOrdersExecute(true)
         end
       else
-       commanders[i] = 0
+        commanders[i] = 0
+        if subordinatesCount > 0 then
+          debugTrace("debug"," Commander " .. getShipName(commanderId) .. " is invalid, skipping " .. tostring(subordinatesCount) .. " subordinates")
+          MimicRepeatOrders.targetIds = MimicRepeatOrders.GetSubordinates()
+          MimicRepeatOrders.clearRepeatOrders(true)
+        end
       end
     end
   end
@@ -684,6 +728,8 @@ function MimicRepeatOrders.ProcessRequest(_, _)
     end
   elseif MimicRepeatOrders.args.command == "refresh_commanders" then
     MimicRepeatOrders.repeatOrdersCommandersRefresh()
+  elseif MimicRepeatOrders.args.command == "clear_orders" then
+    MimicRepeatOrders.clearRepeatOrders()
   else
     debugTrace("debug","ProcessRequest received unknown command: " .. tostring(MimicRepeatOrders.args.command))
     MimicRepeatOrders.reportError({ info = "UnknownCommand" })
