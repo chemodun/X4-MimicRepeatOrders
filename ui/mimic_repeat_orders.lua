@@ -475,7 +475,7 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, sourceCargoCapacity, targ
     end
     targetOrders = MimicRepeatOrders.getRepeatOrders(targetId)
   end
-  debugTrace("debug","Comparing " .. tostring(#sourceOrders) .. " source orders to " .. tostring(#targetOrders) .. " target orders")
+  debugTrace("debug","Comparing " .. tostring(#sourceOrders) .. " source orders to " .. tostring(#targetOrders) .. " target orders with targetId " .. tostring(targetId))
   if #sourceOrders ~= #targetOrders then
     return false
   end
@@ -648,7 +648,7 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
             for j = 1, #commanderOrders do
               local order = repeatOrdersCommanders[commanderId][j]
               debugTrace("debug"," Commander " .. getShipName(commanderId) .. " has repeat order " .. tostring(order.order) .. " at index " .. tostring(order.idx))
-              order.param = GetOrderParams(commanderId, order.idx)
+              order.params = GetOrderParams(commanderId, order.idx)
             end
             subordinates = MimicRepeatOrders.GetSubordinates()
           end
