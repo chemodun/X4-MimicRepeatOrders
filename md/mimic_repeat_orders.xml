@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mdscript name="Mimic_Repeat_Orders" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <cues>
+
+    <cue name="Main" version="3">
+      <patch sinceversion="3">
+        <do_if value="@$repeatOrdersCommanders == null">
+          <create_group groupname="$repeatOrdersCommanders" />
+        </do_if>
+      </patch>
+      <actions>
+        <debug_text text="'MimicRepeatOrders: Main'" chance="100" filter="scripts" />
+        <do_if value="@$repeatOrdersCommanders == null">
+          <create_group groupname="$repeatOrdersCommanders" />
+        </do_if>
+      </actions>
+      <cues>
+        <cue name="On_Reload" instantiate="true">
+          <conditions>
+            <event_ui_triggered screen="'MimicRepeatOrders'" control="'Reloaded'" />
+          </conditions>
+          <actions>
+            <debug_text text="'MimicRepeatOrders: On_Reload'" chance="100" filter="scripts" />
+            <signal_cue_instantly cue="Reloaded" />
+          </actions>
+        </cue>
+
+        <cue name="On_Game_Loaded" instantiate="true">
+          <conditions>
+            <event_game_loaded />
+          </conditions>
+          <actions>
+            <debug_text text="'MimicRepeatOrders: On_Game_Loaded'" chance="100" filter="general" />
+            <signal_cue_instantly cue="Reloaded" />
+          </actions>
+        </cue>
+
+        <cue name="Reloaded" instantiate="true" version="2">
+          <conditions>
+            <event_cue_signalled />
+          </conditions>
+          <actions>
+            <debug_text text="'MimicRepeatOrders: Reloaded'" chance="100" filter="general" />
+            <set_value name="$sourceShipForCloning" exact="null" />
+            <do_if value="@$repeatOrdersCommanders == null">
+              <create_group groupname="$repeatOrdersCommanders" />
+            </do_if>
+          </actions>
+        </cue>
+
+        <cue name="Repeat_Orders_Commanders_Orders_Changed" instantiate="true">
+          <conditions>
+            <check_any>
+              <event_object_order_ready group="@$repeatOrdersCommanders" check="false" />
+              <event_object_order_cancelled group="@$repeatOrdersCommanders" check="false" />
+              <event_object_order_finished group="@$repeatOrdersCommanders" check="false" />
+              <event_object_order_param_edited group="@$repeatOrdersCommanders" check="false" />
+            </check_any>
+          </conditions>
+          <actions>
+            <debug_text
+              text="'MimicRepeatOrders: Repeat_Orders_Commanders_Orders_Changed invoked event %s for object: %s. With params: %s, %s, %s'.[@event.name, @event.object.debugname, @event.param, @event.param2, @event.param3]"
+              chance="100"
+              filter="scripts" />
+          </actions>
+        </cue>
+
+        <cue name="Process_Mimic" instantiate="true">
+          <conditions>
+            <event_object_signalled object="player.entity" param="'mimic_repeat_orders_assign'" />
+            <check_value value="@event.param2.isclass.ship" />
+            <check_value value="@event.param2.trueowner == faction.player" />
+            <check_value value="@event.param2.isoperational" />
+            <check_value value="@event.param2.iswreck" negate="true" />
+            <check_value value="@event.param2.hasorderloop" />
+            <check_value value="@event.param3.isclass.ship" />
+            <check_value value="@event.param3.trueowner == faction.player" />
+            <check_value value="@event.param3.isoperational" />
+            <check_value value="@event.param3.iswreck" negate="true" />
+          </conditions>
+          <actions>
+            <create_list name="$targetList" />
+            <append_to_list name="$targetList" exact="@event.param3" />
+            <set_value name="$args"
+              exact="table[
+                $command            = 'clone_orders',
+                $source             = @event.param2,
+                $targets            = $targetList,
+              ]" />
+            <do_if value="@$repeatOrdersCommanders and @$repeatOrdersCommanders.indexof.{@event.param2} le 0">
+              <add_to_group groupname="$repeatOrdersCommanders" object="@event.param2" />
+            </do_if>
+            <do_if value="not player.entity.$MimicRepeatOrdersRequest?">
+              <set_value name="player.entity.$MimicRepeatOrdersRequest" exact="[]" />
+            </do_if>
+            <append_to_list name="player.entity.$MimicRepeatOrdersRequest" exact="$args" />
+            <raise_lua_event name="'MimicRepeatOrders.Request'" />
+          </actions>
+        </cue>
+
+        <cue name="Process_Results" instantiate="true">
+          <conditions>
+            <event_ui_triggered screen="'MimicRepeatOrders'" control="'Response'" />
+          </conditions>
+          <actions>
+            <debug_text
+              text="'MimicRepeatOrders: Capture_Results invoked with data in $MimicRepeatOrdersResponse: %s'.[player.entity.$MimicRepeatOrdersResponse]"
+              chance="100" filter="scripts" />
+            <!--Look
+            up the action by id to get the callback.-->
+            <set_value name="$result" exact="@player.entity.$MimicRepeatOrdersResponse" />
+            <debug_text text="'MimicRepeatOrders: Process_Results invoked with result: %s'.[$result]" chance="100" filter="scripts" />
+            <do_if value="$result? and @$result != null">
+              <debug_text text="'MimicRepeatOrders: last command %s result: %s'.[@$result.$command, $result]" chance="100" filter="scripts" />
+            </do_if>
+          </actions>
+        </cue>
+      </cues>
+    </cue>
+  </cues>
+</mdscript>
