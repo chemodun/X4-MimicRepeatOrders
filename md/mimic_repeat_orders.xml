@@ -44,7 +44,8 @@
             <event_cue_signalled />
           </conditions>
           <actions>
-            <debug_text text="'MimicRepeatOrders: Reloaded'" chance="100" filter="general" />
+            <debug_text text="'MimicRepeatOrders: Reloaded. Loop Orders Skill Limit: %s'.[@player.entity.$MimicRepeatOrdersLoopOrdersSkillLimit]" chance="100"
+              filter="general" />
             <do_if value="@$repeatOrdersCommanders == null">
               <create_group groupname="$repeatOrdersCommanders" />
             </do_if>
@@ -119,7 +120,7 @@
           </conditions>
           <actions>
             <debug_text
-              text="'MimicRepeatOrders: Capture_Results invoked with data in $MimicRepeatOrdersResponse: %s'.[player.entity.$MimicRepeatOrdersResponse]"
+              text="'MimicRepeatOrders: Capture_Results invoked with data in $MimicRepeatOrdersResponse: %s'.[@player.entity.$MimicRepeatOrdersResponse]"
               chance="100" filter="scripts" />
             <!--Look
             up the action by id to get the callback.-->
