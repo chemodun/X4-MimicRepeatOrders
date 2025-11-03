@@ -290,7 +290,7 @@ function MimicRepeatOrders.isValidTargetShip(target)
   end
   local loopSkill = MimicRepeatOrders.loopOrdersSkillLimit;
   local aiPilot = GetComponentData(ConvertStringToLuaID(tostring(targetId)), "assignedaipilot")
-	local aiPilotSkill = aiPilot and math.floor(C.GetEntityCombinedSkill(ConvertIDTo64Bit(aiPilot), nil, "aipilot")) or -1
+	local aiPilotSkill = aiPilot and math.floor(C.GetEntityCombinedSkill(ConvertIDTo64Bit(aiPilot), nil, "aipilot") * 15 / 100) or -1
   debugTrace("trace","Target ship " .. getShipName(targetId) .. " has AI pilot skill " .. tostring(aiPilotSkill) .. ", required is " .. tostring(loopSkill))
   if aiPilotSkill < loopSkill then
     return false, { info = "TargetPilotSkillTooLow", detail = "skill=" .. tostring(aiPilotSkill) .. ", required=" .. tostring(loopSkill) }
@@ -646,7 +646,7 @@ function MimicRepeatOrders.Init()
   MimicRepeatOrders.mapMenu = Lib.Get_Egosoft_Menu("MapMenu")
   debugTrace("debug","MapMenu is " .. tostring(MimicRepeatOrders.mapMenu))
   MimicRepeatOrders.OrderNamesCollect()
-  MimicRepeatOrders.loopOrdersSkillLimit = C.GetOrderLoopSkillLimit() * 20
+  MimicRepeatOrders.loopOrdersSkillLimit = C.GetOrderLoopSkillLimit() * 3
   SetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersLoopOrdersSkillLimit", MimicRepeatOrders.loopOrdersSkillLimit)
   AddUITriggeredEvent("MimicRepeatOrders", "Reloaded")
 end
