@@ -310,10 +310,15 @@ function MimicRepeatOrders.getArgs()
     debugTrace("debug","getArgs unable to resolve player id")
   else
     local list = GetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersRequest")
-    if type(list) == "table" then
+    if type(list) == "table" and #list > 0 then
       debugTrace("debug","getArgs retrieved " .. tostring(#list) .. " entries from blackboard")
-      MimicRepeatOrders.args = list[#list]
-      SetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersRequest", nil)
+      MimicRepeatOrders.args = list[1]
+      table.remove(list, 1)
+      if #list > 0 then
+        SetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersRequest", list)
+      else
+        SetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersRequest", nil)
+      end
       return true
     elseif list ~= nil then
       debugTrace("debug","getArgs received non-table payload of type " .. type(list))
