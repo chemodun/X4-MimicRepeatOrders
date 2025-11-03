@@ -1,0 +1,53 @@
+# Mimic Repeat Orders
+
+The impossible is possible: use the Mimic behavior for Repeat Orders.
+
+## Features
+
+- Assign any appropriate Player-owned ship to commander with `Repeat Orders` enabled as subordinate with `Mimic` behavior.
+- The subordinate ship will copy the `Repeat Orders` of its commander.
+- Ships with insufficient AI Pilot skill to use `Repeat Orders` will be not assigned or removed.
+- Any changes to the commander's `Repeat Orders` will be automatically reflected on the subordinate ship.
+
+## Limitations
+
+- Only one level of `Mimic` behavior is supported. Ships assigned as subordinates to subordinate ships will not be able to mimic their orders.
+- Changes to subordinate ship's will be reflected with small delay, up to 30 seconds.
+
+## Requirements
+
+- `X4: Foundations` 7.60 or newer (tested on 7.60 and 8.00).
+- `Mod Support APIs` by [SirNukes](https://next.nexusmods.com/profile/sirnukes?gameId=2659) to be installed and enabled. Version `1.93` and upper is required.
+  - It is available via Steam - [SirNukes Mod Support APIs](https://steamcommunity.com/sharedfiles/filedetails/?id=2042901274)
+  - Or via the Nexus Mods - [Mod Support APIs](https://www.nexusmods.com/x4foundations/mods/503)
+
+## Installation
+
+You can download the latest version via Steam client - [Mimic Repeat Orders](https://steamcommunity.com/sharedfiles/filedetails/?id=3599279973)
+Or you can do it via the Nexus Mods - [Mimic Repeat Orders](https://www.nexusmods.com/x4foundations/mods/1875)
+
+## Usage
+
+Simple use the usual context menu options to assign a ship to commander with Repeat Orders enabled as subordinate using the `Mimic` behavior.
+
+## Video
+
+[Video demonstration of the Mimic Repeat Orders. Version 1.00](https://www.youtube.com/watch?v=6pT75XC8MUs)
+
+## Credits
+
+- Author: Chem O`Dun, on [Nexus Mods](https://next.nexusmods.com/profile/ChemODun/mods?gameId=2659) and [Steam Workshop](https://steamcommunity.com/id/chemodun/myworkshopfiles/?appid=392160)
+- *"X4: Foundations"* is a trademark of [Egosoft](https://www.egosoft.com).
+
+## Acknowledgements
+
+- [EGOSOFT](https://www.egosoft.com) — for the X series.
+- [SirNukes](https://next.nexusmods.com/profile/sirnukes?gameId=2659) — for the Mod Support APIs that power the UI hooks.
+- [Forleyor](https://next.nexusmods.com/profile/Forleyor?gameId=2659) — for his constant help with understanding the UI modding!
+
+## Changelog
+
+### [1.00] - 2025-11-04
+
+- Added
+  - Initial public version
