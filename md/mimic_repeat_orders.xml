@@ -2,17 +2,21 @@
 <mdscript name="Mimic_Repeat_Orders" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <cues>
 
-    <cue name="Main" version="3">
+    <cue name="Main" version="4">
       <patch sinceversion="3">
         <do_if value="@$repeatOrdersCommanders == null">
           <create_group groupname="$repeatOrdersCommanders" />
         </do_if>
+      </patch>
+      <patch sinceversion="4">
+        <set_value name="$refreshIteration" exact="0" />
       </patch>
       <actions>
         <debug_text text="'MimicRepeatOrders: Main'" chance="100" filter="scripts" />
         <do_if value="@$repeatOrdersCommanders == null">
           <create_group groupname="$repeatOrdersCommanders" />
         </do_if>
+        <set_value name="$refreshIteration" exact="0" />
       </actions>
       <cues>
         <cue name="On_Reload" instantiate="true">
@@ -35,16 +39,25 @@
           </actions>
         </cue>
 
-        <cue name="Reloaded" instantiate="true" version="2">
+        <cue name="Reloaded" instantiate="true" version="3">
           <conditions>
             <event_cue_signalled />
           </conditions>
           <actions>
             <debug_text text="'MimicRepeatOrders: Reloaded'" chance="100" filter="general" />
-            <set_value name="$sourceShipForCloning" exact="null" />
             <do_if value="@$repeatOrdersCommanders == null">
               <create_group groupname="$repeatOrdersCommanders" />
             </do_if>
+            <set_value name="$refreshIteration" exact="10" />
+            <include_actions ref="Repeat_Orders_Commanders_Refresh" />
+          </actions>
+        </cue>
+
+        <cue name="Refresh_Repeat_Orders_Commanders" instantiate="true" checkinterval="3s">
+          <actions>
+            <debug_text text="'MimicRepeatOrders: Refresh_Repeat_Orders_Commanders. Iteration %s'.[@refreshIteration]" chance="100" filter="scripts" />
+            <!--<include_actions
+            ref="Repeat_Orders_Commanders_Refresh" />  -->
           </actions>
         </cue>
 
@@ -65,7 +78,7 @@
           </actions>
         </cue>
 
-        <cue name="Process_Mimic" instantiate="true">
+        <cue name="Process_Mimic" instantiate="true" version="2">
           <conditions>
             <event_object_signalled object="player.entity" param="'mimic_repeat_orders_assign'" />
             <check_value value="@event.param2.isclass.ship" />
@@ -87,14 +100,10 @@
                 $source             = @event.param2,
                 $targets            = $targetList,
               ]" />
-            <do_if value="@$repeatOrdersCommanders and @$repeatOrdersCommanders.indexof.{@event.param2} le 0">
+            <do_if value="@event.param2 == null and @$repeatOrdersCommanders and @$repeatOrdersCommanders.indexof.{@event.param2} le 0">
               <add_to_group groupname="$repeatOrdersCommanders" object="@event.param2" />
             </do_if>
-            <do_if value="not player.entity.$MimicRepeatOrdersRequest?">
-              <set_value name="player.entity.$MimicRepeatOrdersRequest" exact="[]" />
-            </do_if>
-            <append_to_list name="player.entity.$MimicRepeatOrdersRequest" exact="$args" />
-            <raise_lua_event name="'MimicRepeatOrders.Request'" />
+            <include_actions ref="Send_Request" />
           </actions>
         </cue>
 
@@ -115,6 +124,47 @@
             </do_if>
           </actions>
         </cue>
+
+        <library name="Send_Request" purpose="include_actions">
+          <actions>
+            <do_if value="$args? and @$args != null">
+              <do_if value="not player.entity.$MimicRepeatOrdersRequest?">
+                <set_value name="player.entity.$MimicRepeatOrdersRequest" exact="[]" />
+              </do_if>
+              <append_to_list name="player.entity.$MimicRepeatOrdersRequest" exact="$args" />
+              <debug_text
+                text="'MimicRepeatOrders: Send_Request, command: %s, args: %s'.[$args.$command, $args]" chance="100" filter="scripts" />
+              <raise_lua_event name="'MimicRepeatOrders.Request'" />
+            </do_if>
+          </actions>
+        </library>
+
+        <library name="Repeat_Orders_Commanders_Refresh" purpose="include_actions">
+          <actions>
+            <debug_text
+              text="'MimicRepeatOrders: Repeat_Orders_Commanders_Refresh, count: %s, iteration: %s'.[@$repeatOrdersCommanders.count, $refreshIteration]"
+              chance="100" filter="scripts" />
+            <do_if value="@$repeatOrdersCommanders == null">
+              <create_group groupname="$repeatOrdersCommanders" />
+            </do_if>
+            <do_if value="@$repeatOrdersCommanders.count gt 0">
+              <set_value name="$args"
+                exact="table[
+                $command            = 'refresh_commanders',
+                $list               = @$repeatOrdersCommanders.list,
+                $check_subordinates = $refreshIteration == 10,
+              ]" />
+              <do_if value="$refreshIteration == 10">
+                <set_value name="$refreshIteration" exact="0" />
+              </do_if>
+              <do_else>
+                <set_value name="$refreshIteration" operation="add" />
+              </do_else>
+              <include_actions ref="Send_Request" />
+            </do_if>
+          </actions>
+        </library>
+
       </cues>
     </cue>
   </cues>
