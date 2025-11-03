@@ -635,6 +635,7 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
             if (checkSubordinates) then
               subordinates = MimicRepeatOrders.GetSubordinates()
             end
+            repeatOrdersCommanders[commanderId] = MimicRepeatOrders.repeatOrdersCommanders[commanderId]
           else
             debugTrace(" Commander " .. getShipName(commanderId) .. " orders changed, updating cache and subordinates")
             repeatOrdersCommanders[commanderId] = commanderOrders
