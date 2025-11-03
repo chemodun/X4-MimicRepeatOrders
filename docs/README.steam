@@ -1,0 +1,59 @@
+[h1]Mimic Repeat Orders[/h1]
+
+The impossible is possible: use the Mimic behavior for Repeat Orders.
+
+[h2][b]Features[/b][/h2]
+[list]
+[*] Assign any appropriate Player-owned ship to commander with [b]Repeat Orders[/b] enabled as subordinate with [b]Mimic[/b] behavior.
+[*] The subordinate ship will copy the [b]Repeat Orders[/b] of its commander.
+[*] Ships with insufficient AI Pilot skill to use [b]Repeat Orders[/b] will be not assigned or removed.
+[*] Any changes to the commander's [b]Repeat Orders[/b] will be automatically reflected on the subordinate ship.
+[/list]
+[h2][b]Limitations[/b][/h2]
+[list]
+[*] Only one level of [b]Mimic[/b] behavior is supported. Ships assigned as subordinates to subordinate ships will not be able to mimic their orders.
+[*] Changes to subordinate ship's will be reflected with small delay, up to 30 seconds.
+[/list]
+[h2][b]Requirements[/b][/h2]
+[list]
+[*] [b]X4: Foundations[/b] 7.60 or newer (tested on 7.60 and 8.00).
+[*] [b]Mod Support APIs[/b] by [url=https://next.nexusmods.com/profile/sirnukes?gameId=2659]SirNukes[/url] to be installed and enabled. Version [b]1.93[/b] and upper is required.
+[list]
+[*] It is available via Steam - [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2042901274]SirNukes Mod Support APIs[/url]
+[*] Or via the Nexus Mods - [url=https://www.nexusmods.com/x4foundations/mods/503]Mod Support APIs[/url]
+[/list]
+[/list]
+[h2][b]Installation[/b][/h2]
+
+You can download the latest version via Steam client - [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3599279973]Mimic Repeat Orders[/url]
+Or you can do it via the Nexus Mods - [url=https://www.nexusmods.com/x4foundations/mods/1875]Mimic Repeat Orders[/url]
+
+[h2][b]Usage[/b][/h2]
+
+Simple use the usual context menu options to assign a ship to commander with Repeat Orders enabled as subordinate using the [b]Mimic[/b] behavior.
+
+[h2][b]Video[/b][/h2]
+
+Video demonstration of the Mimic Repeat Orders. Version 1.00
+[previewyoutube=6pT75XC8MUs;full][/previewyoutube]
+
+[h2][b]Credits[/b][/h2]
+[list]
+[*] Author: Chem O`Dun, on [url=https://next.nexusmods.com/profile/ChemODun/mods?gameId=2659]Nexus Mods[/url] and [url=https://steamcommunity.com/id/chemodun/myworkshopfiles/?appid=392160]Steam Workshop[/url]
+[*] [i]"X4: Foundations"[/i] is a trademark of [url=https://www.egosoft.com]Egosoft[/url].
+[/list]
+[h2][b]Acknowledgements[/b][/h2]
+[list]
+[*] [url=https://www.egosoft.com]EGOSOFT[/url] — for the X series.
+[*] [url=https://next.nexusmods.com/profile/sirnukes?gameId=2659]SirNukes[/url] — for the Mod Support APIs that power the UI hooks.
+[*] [url=https://next.nexusmods.com/profile/Forleyor?gameId=2659]Forleyor[/url] — for his constant help with understanding the UI modding!
+[/list]
+[h2][b]Changelog[/b][/h2]
+
+[h2][1.00] - 2025-11-04[/h2]
+[list]
+[*] Added
+[list]
+[*] Initial public version
+[/list]
+[/list]
