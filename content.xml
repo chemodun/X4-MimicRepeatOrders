@@ -1,36 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <content
-  id=""
+  id="ws_3599279973"
   author="Chem O`Dun"
   version="100"
   date="2025-11-04"
   save="false"
-  lastupdate="1761821655"
+  lastupdate="1762209071"
   name="Mimic Repeat Orders"
-  description="The impossible is possible: use the Mimic behavior for Repeat Orders.">
+  description="The impossible is possible: use the Mimic behavior for Repeat Orders.&#13;&#10;&#13;&#10;[h2][b]Features[/b][/h2]&#13;&#10;[list]&#13;&#10;[*] Assign any appropriate Player-owned ship to commander with [b]Repeat Orders[/b] enabled as subordinate with [b]Mimic[/b] behavior.&#13;&#10;[*] The subordinate ship will copy the [b]Repeat Orders[/b] of its commander.&#13;&#10;[*] Ships with insufficient AI Pilot skill to use [b]Repeat Orders[/b] will be not assigned or removed.&#13;&#10;[*] Any changes to the commander's [b]Repeat Orders[/b] will be automatically reflected on the subordinate ship.&#13;&#10;[/list]&#13;&#10;[h2][b]Limitations[/b][/h2]&#13;&#10;[list]&#13;&#10;[*] Only one level of [b]Mimic[/b] behavior is supported. Ships assigned as subordinates to subordinate ships will not be able to mimic their orders.&#13;&#10;[*] Changes to subordinate ship's will be reflected with small delay, up to 30 seconds.&#13;&#10;[/list]&#13;&#10;[h2][b]Requirements[/b][/h2]&#13;&#10;[list]&#13;&#10;[*] [b]X4: Foundations[/b] 7.60 or newer (tested on 7.60 and 8.00).&#13;&#10;[*] [b]Mod Support APIs[/b] by [url=https://next.nexusmods.com/profile/sirnukes?gameId=2659]SirNukes[/url] to be installed and enabled. Version [b]1.93[/b] and upper is required.&#13;&#10;[list]&#13;&#10;[*] It is available via Steam - [url=https://steamcommunity.com/sharedfiles/filedetails/?id=2042901274]SirNukes Mod Support APIs[/url]&#13;&#10;[*] Or via the Nexus Mods - [url=https://www.nexusmods.com/x4foundations/mods/503]Mod Support APIs[/url]&#13;&#10;[/list]&#13;&#10;[/list]&#13;&#10;[h2][b]Installation[/b][/h2]&#13;&#10;&#13;&#10;You can download the latest version via Steam client - [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3599279973]Mimic Repeat Orders[/url]&#13;&#10;Or you can do it via the Nexus Mods - [url=https://www.nexusmods.com/x4foundations/mods/1875]Mimic Repeat Orders[/url]&#13;&#10;&#13;&#10;[h2][b]Usage[/b][/h2]&#13;&#10;&#13;&#10;Simple use the usual context menu options to assign a ship to commander with Repeat Orders enabled as subordinate using the [b]Mimic[/b] behavior.&#13;&#10;&#13;&#10;[h2][b]Video[/b][/h2]&#13;&#10;&#13;&#10;Video demonstration of the Mimic Repeat Orders. Version 1.00&#13;&#10;[previewyoutube=6pT75XC8MUs;full][/previewyoutube]&#13;&#10;&#13;&#10;[h2][b]Credits[/b][/h2]&#13;&#10;[list]&#13;&#10;[*] Author: Chem O`Dun, on [url=https://next.nexusmods.com/profile/ChemODun/mods?gameId=2659]Nexus Mods[/url] and [url=https://steamcommunity.com/id/chemodun/myworkshopfiles/?appid=392160]Steam Workshop[/url]&#13;&#10;[*] [i]&quot;X4: Foundations&quot;[/i] is a trademark of [url=https://www.egosoft.com]Egosoft[/url].&#13;&#10;[/list]&#13;&#10;[h2][b]Acknowledgements[/b][/h2]&#13;&#10;[list]&#13;&#10;[*] [url=https://www.egosoft.com]EGOSOFT[/url] — for the X series.&#13;&#10;[*] [url=https://next.nexusmods.com/profile/sirnukes?gameId=2659]SirNukes[/url] — for the Mod Support APIs that power the UI hooks.&#13;&#10;[*] [url=https://next.nexusmods.com/profile/Forleyor?gameId=2659]Forleyor[/url] — for his constant help with understanding the UI modding!&#13;&#10;[/list]">
   <text language="7" description="The impossible is possible: use the Mimic behavior for Repeat Orders."></text>
   <!-- French -->
-  <text language="33"
-    description="L'impossible devient possible : utilisez le comportement Imitation pour les Ordres Répétés."></text>
+  <text language="33" description="L'impossible devient possible : utilisez le comportement Imitation pour les Ordres Répétés."></text>
   <!-- Spanish -->
-  <text language="34"
-    description="Lo imposible es posible: usa el comportamiento Imitar para Órdenes Repetidas."></text>
+  <text language="34" description="Lo imposible es posible: usa el comportamiento Imitar para Órdenes Repetidas."></text>
   <!-- Italian -->
-  <text language="39"
-    description="L'impossibile diventa possibile: usa il comportamento Imitare per Ordini Ripetuti."></text>
+  <text language="39" description="L'impossibile diventa possibile: usa il comportamento Imitare per Ordini Ripetuti."></text>
   <!-- Czech -->
   <text language="42" description="Nemožné se stává možným: použijte chování Nápodoba pro Opakované Příkazy."></text>
   <!-- English -->
   <text language="44" description="The impossible is possible: use the Mimic behavior for Repeat Orders."></text>
   <!-- Polish -->
-  <text language="48"
-    description="Niemożliwe staje się możliwe: użyj zachowania Naśladuj dla Powtarzanych Poleceń."></text>
+  <text language="48" description="Niemożliwe staje się możliwe: użyj zachowania Naśladuj dla Powtarzanych Poleceń."></text>
   <!-- German -->
-  <text language="49"
-    description="Das Unmögliche wird möglich: Verwende das Verhalten Nachahmen für Wiederholte Befehle."></text>
+  <text language="49" description="Das Unmögliche wird möglich: Verwende das Verhalten Nachahmen für Wiederholte Befehle."></text>
   <!-- Portuguese -->
-  <text language="55"
-    description="O impossível torna-se possível: use o comportamento Imitar para Ordens Repetidas."></text>
+  <text language="55" description="O impossível torna-se possível: use o comportamento Imitar para Ordens Repetidas."></text>
   <!-- Japanese -->
   <text language="81" description="不可能が可能になる――模倣行動を繰り返し命令に活用しましょう。"></text>
   <!-- Korean -->
@@ -38,13 +32,11 @@
   <!-- Chinese -->
   <text language="86" description="让不可能成为可能：为重复指令使用模仿行为。"></text>
   <!-- Bengali -->
-  <text language="88"
-    description="অসম্ভবও সম্ভব হয়: পুনরাবৃত্ত আদেশের জন্য অনুকরণ আচরণ ব্যবহার করুন।"></text>
+  <text language="88" description="অসম্ভবও সম্ভব হয়: পুনরাবৃত্ত আদেশের জন্য অনুকরণ আচরণ ব্যবহার করুন।"></text>
   <!-- Turkish -->
   <text language="90" description="İmkânsız mümkün oluyor: Tekrarlanan Emirler için Taklit davranışını kullanın."></text>
   <!-- Ukrainian -->
-  <text language="380"
-    description="Неможливе стає можливим: використовуйте поведінку «Імітація» для «Повторюваних Наказів»."></text>
+  <text language="380" description="Неможливе стає можливим: використовуйте поведінку «Імітація» для «Повторюваних Наказів»."></text>
   <dependency version="760"></dependency>
   <dependency id="ws_2042901274" optional="false" name="SirNukes Mod Support APIs" version="193"></dependency>
 </content>
