@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<diff>
+  <add sel="/aiscript/init">
+    <do_if value="@this.assignedcontrolled.trueowner == faction.player">
+      <debug_text text="'MimicRepeatOrders: Wait order inited on %s'.[@this.assignedcontrolled.debugname]" chance="100" filter="scripts" />
+    </do_if>
+  </add>
+  <add sel="/aiscript/attention[@min='unknown']/actions" pos="prepend">
+    <do_if value="@this.assignedcontrolled.trueowner == faction.player">
+      <debug_text text="'MimicRepeatOrders: Wait order started on %s'.[@this.assignedcontrolled.debugname]" chance="100" filter="scripts" />
+    </do_if>
+  </add>
+</diff>
