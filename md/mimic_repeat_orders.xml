@@ -9,14 +9,14 @@
         </do_if>
       </patch>
       <patch sinceversion="4">
-        <set_value name="$refreshIteration" exact="0" />
+        <set_value name="$refreshIteration" exact="1" />
       </patch>
       <actions>
         <debug_text text="'MimicRepeatOrders: Main'" chance="100" filter="scripts" />
         <do_if value="@$repeatOrdersCommanders == null">
           <create_group groupname="$repeatOrdersCommanders" />
         </do_if>
-        <set_value name="$refreshIteration" exact="0" />
+        <set_value name="$refreshIteration" exact="1" />
       </actions>
       <cues>
         <cue name="On_Reload" instantiate="true">
@@ -55,9 +55,8 @@
 
         <cue name="Refresh_Repeat_Orders_Commanders" instantiate="true" checkinterval="3s">
           <actions>
-            <debug_text text="'MimicRepeatOrders: Refresh_Repeat_Orders_Commanders. Iteration %s'.[@refreshIteration]" chance="100" filter="scripts" />
-            <!--<include_actions
-            ref="Repeat_Orders_Commanders_Refresh" />  -->
+            <debug_text text="'MimicRepeatOrders: Refresh_Repeat_Orders_Commanders. Iteration %s'.[@$refreshIteration]" chance="100" filter="scripts" />
+            <include_actions ref="Repeat_Orders_Commanders_Refresh" />
           </actions>
         </cue>
 
@@ -150,12 +149,12 @@
             <do_if value="@$repeatOrdersCommanders.count gt 0">
               <set_value name="$args"
                 exact="table[
-                $command            = 'refresh_commanders',
-                $list               = @$repeatOrdersCommanders.list,
-                $check_subordinates = $refreshIteration == 10,
-              ]" />
+                  $command            = 'refresh_commanders',
+                  $list               = @$repeatOrdersCommanders.list,
+                  $checkSubordinates  = $refreshIteration == 10,
+                ]" />
               <do_if value="$refreshIteration == 10">
-                <set_value name="$refreshIteration" exact="0" />
+                <set_value name="$refreshIteration" exact="1" />
               </do_if>
               <do_else>
                 <set_value name="$refreshIteration" operation="add" />
