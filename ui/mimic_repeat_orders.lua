@@ -123,6 +123,12 @@ local function getShipName(shipId)
   return string.format("%s (%s)", name, idCode)
 end
 
+local function isTopCommander(shipId)
+  local shipId = toUniverseId(shipId)
+  local n = C.GetNumAllCommanders(shipId, 0)
+  return n > 0
+end
+
 local function centerFrameVertically(frame)
   frame.properties.height = frame:getUsedHeight() + Helper.borderSize
   if (frame.properties.height > Helper.viewHeight ) then
@@ -449,45 +455,94 @@ function MimicRepeatOrders.cloneOrdersPrepare()
   return true
 end
 
+function MimicRepeatOrders.isOrdersEqual(sourceOrders, sourceCargoCapacity, targetId, targetCargoCapacity)
+  if MimicRepeatOrders.isLoopEnabled(targetId) == false then
+    return false
+  end
+  local targetOrders = MimicRepeatOrders.getRepeatOrders(targetId)
+  if #sourceOrders ~= #targetOrders then
+    return false
+  end
+  for i = 1, #sourceOrders do
+    local sourceOrder = sourceOrders[i]
+    local targetOrder = targetOrders[i]
+    if sourceOrder.order ~= targetOrder.order then
+      return false
+    end
+    local sourceParams = GetOrderParams(MimicRepeatOrders.sourceId, sourceOrder.idx)
+    local targetParams = GetOrderParams(targetId, targetOrder.idx)
+    local sourceWare = sourceParams[1].value
+    local targetWare = targetParams[1].value
+    if sourceWare ~= targetWare then
+      return false
+    end
+    local sourceAmount = (sourceCargoCapacity > 0) and (sourceParams[5].value / sourceCargoCapacity ) or 0
+    local targetAmount = (targetCargoCapacity > 0) and (targetParams[5].value / targetCargoCapacity ) or 0
+    if math.abs(sourceAmount - targetAmount) > 0.01 then
+      return false
+    end
+    local sourcePrice = sourceParams[7].value * 100
+    local targetPrice = targetParams[7].value * 100
+    if sourcePrice ~= targetPrice then
+      return false
+    end
+    local sourceLocations = sourceParams[4].value or {}
+    local targetLocations = targetParams[4].value or {}
+    if #sourceLocations ~= #targetLocations then
+      return false
+    end
+    for j = 1, #sourceLocations do
+      if sourceLocations[j] ~= targetLocations[j] then
+        return false
+      end
+    end
+  end
+  return true
+end
+
 function MimicRepeatOrders.cloneOrdersExecute()
   debugTrace("Executing clone orders from source " .. getShipName(MimicRepeatOrders.sourceId) .. " to " .. tostring(#MimicRepeatOrders.targetIds) .. " targets")
   local sourceOrders = MimicRepeatOrders.getRepeatOrders(MimicRepeatOrders.sourceId)
   local targets = MimicRepeatOrders.targetIds
-  local cargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId)
+  local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId)
   local processedOrders = 0
   for i = 1, #targets do
     local targetId = targets[i]
     debugTrace("Cloning orders to target " .. getShipName(targetId))
-    if not C.RemoveAllOrders(targetId) then
-      debugTrace("failed to clear target order queue for " .. getShipName(targetId))
+    local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId)
+    if MimicRepeatOrders.isOrdersEqual(sourceOrders, sourceCargoCapacity, targetId, targetCargoCapacity) then
+      debugTrace("Target orders on " .. getShipName(targetId) .. " already match source orders, skipping")
     else
-      C.CreateOrder(targetId, "Wait", true)
-      C.EnablePlannedDefaultOrder(targetId, false)
-      C.SetOrderLoop(targetId, 0, false)
-      local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId)
-      for j = 1, #sourceOrders do
-        local order = sourceOrders[j]
-        if order.ware == nil then
-          local orderParams = GetOrderParams(MimicRepeatOrders.sourceId, order.idx)
-          order.ware = orderParams[1].value
-          order.amount = (cargoCapacity > 0) and (orderParams[5].value / cargoCapacity ) or 0
-          order.price = orderParams[7].value * 100
-          order.locations = orderParams[4].value
-        end
-        local newOrderIdx = C.CreateOrder(targetId, order.order, false)
-        if newOrderIdx and newOrderIdx > 0 then
-          SetOrderParam(targetId, newOrderIdx, 1, nil, order.ware)
-          SetOrderParam(targetId, newOrderIdx, 5, nil, math.floor(order.amount * targetCargoCapacity + 0.5))
-          SetOrderParam(targetId, newOrderIdx, 7, nil, order.price)
-          local locations = order.locations or {}
-          for j=1, #locations do
-            SetOrderParam(targetId, newOrderIdx, 4, nil, locations[j])
+      if not C.RemoveAllOrders(targetId) then
+        debugTrace("failed to clear target order queue for " .. getShipName(targetId))
+      else
+        C.CreateOrder(targetId, "Wait", true)
+        C.EnablePlannedDefaultOrder(targetId, false)
+        C.SetOrderLoop(targetId, 0, false)
+        for j = 1, #sourceOrders do
+          local order = sourceOrders[j]
+          if order.ware == nil then
+            local orderParams = GetOrderParams(MimicRepeatOrders.sourceId, order.idx)
+            order.ware = orderParams[1].value
+            order.amount = (sourceCargoCapacity > 0) and (orderParams[5].value / sourceCargoCapacity ) or 0
+            order.price = orderParams[7].value * 100
+            order.locations = orderParams[4].value
           end
-          debugTrace(" Created order " .. tostring(order.order) .. " on target " .. getShipName(targetId) .. " at index " .. tostring(newOrderIdx))
-          C.EnableOrder(targetId, newOrderIdx)
-          processedOrders = processedOrders + 1
-        else
-          debugTrace(" Failed to create order " .. tostring(order.order) .. " on target " .. getShipName(targetId))
+          local newOrderIdx = C.CreateOrder(targetId, order.order, false)
+          if newOrderIdx and newOrderIdx > 0 then
+            SetOrderParam(targetId, newOrderIdx, 1, nil, order.ware)
+            SetOrderParam(targetId, newOrderIdx, 5, nil, math.floor(order.amount * targetCargoCapacity + 0.5))
+            SetOrderParam(targetId, newOrderIdx, 7, nil, order.price)
+            local locations = order.locations or {}
+            for j = 1, #locations do
+              SetOrderParam(targetId, newOrderIdx, 4, nil, locations[j])
+            end
+            debugTrace(" Created order " .. tostring(order.order) .. " on target " .. getShipName(targetId) .. " at index " .. tostring(newOrderIdx))
+            C.EnableOrder(targetId, newOrderIdx)
+            processedOrders = processedOrders + 1
+          else
+            debugTrace(" Failed to create order " .. tostring(order.order) .. " on target " .. getShipName(targetId))
+          end
         end
       end
     end
@@ -517,27 +572,22 @@ function MimicRepeatOrders.cloneOrdersReset()
 end
 
 function MimicRepeatOrders.ProcessRequest(_, _)
-  if MimicRepeatOrders.mapMenu and MimicRepeatOrders.mapMenu.holomap and (MimicRepeatOrders.mapMenu.holomap ~= 0) then
-    if not MimicRepeatOrders.getArgs() then
-      debugTrace("ProcessRequest invoked without args or invalid args")
-      MimicRepeatOrders.reportError({info ="missing_args"})
-      return
-    end
-    debugTrace("ProcessRequest received command: " .. tostring(MimicRepeatOrders.args.command))
-    if MimicRepeatOrders.args.command == "clone_orders" then
-      local valid, errorData = MimicRepeatOrders.cloneOrdersPrepare()
-      if valid then
-        MimicRepeatOrders.cloneOrdersExecute()
-      else
-        MimicRepeatOrders.reportError(errorData)
-      end
+  if not MimicRepeatOrders.getArgs() then
+    debugTrace("ProcessRequest invoked without args or invalid args")
+    MimicRepeatOrders.reportError({info ="missing_args"})
+    return
+  end
+  debugTrace("ProcessRequest received command: " .. tostring(MimicRepeatOrders.args.command))
+  if MimicRepeatOrders.args.command == "clone_orders" then
+    local valid, errorData = MimicRepeatOrders.cloneOrdersPrepare()
+    if valid then
+      MimicRepeatOrders.cloneOrdersExecute()
     else
-      debugTrace("ProcessRequest received unknown command: " .. tostring(args.command))
-      MimicRepeatOrders.reportError({ info = "UnknownCommand" })
+      MimicRepeatOrders.reportError(errorData)
     end
   else
-    debugTrace("ProcessRequest invoked but no MapMenu or Holomap available")
-    MimicRepeatOrders.reportError({ info = "NoMap" })
+    debugTrace("ProcessRequest received unknown command: " .. tostring(MimicRepeatOrders.args.command))
+    MimicRepeatOrders.reportError({ info = "UnknownCommand" })
   end
 end
 
@@ -559,10 +609,10 @@ function MimicRepeatOrders.Init()
   getPlayerId()
   ---@diagnostic disable-next-line: undefined-global
   RegisterEvent("MimicRepeatOrders.Request", MimicRepeatOrders.ProcessRequest)
-  AddUITriggeredEvent("MimicRepeatOrders", "Reloaded")
   MimicRepeatOrders.mapMenu = Lib.Get_Egosoft_Menu("MapMenu")
   debugTrace("MapMenu is " .. tostring(MimicRepeatOrders.mapMenu))
   MimicRepeatOrders.OrderNamesCollect()
+  AddUITriggeredEvent("MimicRepeatOrders", "Reloaded")
 end
 
 Register_Require_With_Init("extensions.mimic_repeat_orders.ui.mimic_repeat_orders", MimicRepeatOrders, MimicRepeatOrders.Init)
