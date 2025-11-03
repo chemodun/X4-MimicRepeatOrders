@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<diff>
+  <add sel="/aiscript/attention[@min='unknown']/actions" pos="prepend">
+    <do_if value="@this.assignedcontrolled.trueowner == faction.player">
+      <debug_text text="'StandingOrders: Assist order started on %s. Commander: %s'.[@this.assignedcontrolled.debugname, @this.assignedcontrolled.commander.debugname]" chance="100" filter="scripts" />
+    </do_if>
+  </add>
+  <add sel="/aiscript/attention[@min='unknown']/actions/do_if[@value='$order.exists or (@$orderdef and $createdefaultorder?)']/do_if[@value='(@$orderdef and $createdefaultorder?) or not $order.requiredskill or (this.combinedskill ge $order.requiredskill)']/do_elseif[@value=&quot;$orderdef.$id == 'Wait'&quot;]" pos="prepend">
+    <do_if value="@this.assignedcontrolled.trueowner == faction.player">
+      <debug_text text="'StandingOrders: Assist: Wait to be processed on %s with commander %s: hasorderloop %s'.[@this.assignedcontrolled.debugname, @this.assignedcontrolled.commander.debugname, @this.assignedcontrolled.commander.hasorderloop]" chance="100" filter="scripts" />
+      <do_if value="@this.assignedcontrolled.commander and @this.assignedcontrolled.commander.hasorderloop">
+        <signal_objects object="player.entity" param="'mimic_repeat_orders_assign'" param2="@this.assignedcontrolled.commander" param3="@this.assignedcontrolled" />
+      </do_if>
+    </do_if>
+  </add>
+</diff>
