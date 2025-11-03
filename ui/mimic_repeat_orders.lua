@@ -34,6 +34,7 @@ ffi.cdef [[
 		uint32_t requiredSkill;
 	} OrderDefinition;
 
+
 	UniverseID GetPlayerID(void);
 
 	bool GetOrderDefinition(OrderDefinition* result, const char* orderdef);
@@ -49,6 +50,10 @@ ffi.cdef [[
 	bool EnablePlannedDefaultOrder(UniverseID controllableid, bool checkonly);
 	bool SetOrderLoop(UniverseID controllableid, size_t orderidx, bool checkonly);
 	bool EnableOrder(UniverseID controllableid, size_t idx);
+
+	uint32_t GetNumAllCommanders(UniverseID controllableid, FleetUnitID fleetunitid);
+	const char* GetSubordinateGroupAssignment(UniverseID controllableid, int group);
+
 ]]
 
 local MimicRepeatOrders = {
@@ -61,6 +66,7 @@ local MimicRepeatOrders = {
   },
   sourceId = 0,
   targetIds = {},
+  repeatOrdersCommanders = {},
 }
 
 
@@ -243,7 +249,7 @@ end
 
 
 function MimicRepeatOrders.isValidSourceShip()
-  local sourceId = toUniverseId(MimicRepeatOrders.args.source)
+  local sourceId = MimicRepeatOrders.sourceId or toUniverseId(MimicRepeatOrders.args.source)
   local valid, errorData = MimicRepeatOrders.checkShip(sourceId)
   if not valid then
     return false, errorData
@@ -455,44 +461,54 @@ function MimicRepeatOrders.cloneOrdersPrepare()
   return true
 end
 
-function MimicRepeatOrders.isOrdersEqual(sourceOrders, sourceCargoCapacity, targetId, targetCargoCapacity)
-  if MimicRepeatOrders.isLoopEnabled(targetId) == false then
-    return false
+function MimicRepeatOrders.isOrdersEqual(sourceOrders, sourceCargoCapacity, targetId, targetCargoCapacity, targetOrders)
+
+  if targetId ~= nil then
+    if MimicRepeatOrders.isLoopEnabled(targetId) == false then
+      return false
+    end
+    targetOrders = MimicRepeatOrders.getRepeatOrders(targetId)
   end
-  local targetOrders = MimicRepeatOrders.getRepeatOrders(targetId)
+  debugTrace("Comparing " .. tostring(#sourceOrders) .. " source orders to " .. tostring(#targetOrders) .. " target orders")
   if #sourceOrders ~= #targetOrders then
     return false
   end
   for i = 1, #sourceOrders do
     local sourceOrder = sourceOrders[i]
     local targetOrder = targetOrders[i]
+    debugTrace(" Comparing source order " .. tostring(i) .. ": " .. tostring(sourceOrder.order) .. " to target order " .. tostring(i) .. ": " .. tostring(targetOrder.order))
     if sourceOrder.order ~= targetOrder.order then
       return false
     end
     local sourceParams = GetOrderParams(MimicRepeatOrders.sourceId, sourceOrder.idx)
-    local targetParams = GetOrderParams(targetId, targetOrder.idx)
+    local targetParams = targetOrder.params or GetOrderParams(targetId, targetOrder.idx)
     local sourceWare = sourceParams[1].value
     local targetWare = targetParams[1].value
+    debugTrace("  Comparing source ware " .. tostring(sourceWare) .. " to target ware " .. tostring(targetWare))
     if sourceWare ~= targetWare then
       return false
     end
-    local sourceAmount = (sourceCargoCapacity > 0) and (sourceParams[5].value / sourceCargoCapacity ) or 0
-    local targetAmount = (targetCargoCapacity > 0) and (targetParams[5].value / targetCargoCapacity ) or 0
+    local sourceAmount = (sourceCargoCapacity > 0) and sourceParams[5].value or 0
+    local targetAmount = (targetCargoCapacity > 0) and (targetParams[5].value * sourceCargoCapacity / targetCargoCapacity) or 0
+    debugTrace("  Comparing source amount " .. tostring(sourceAmount) .. " to target amount " .. tostring(targetAmount))
     if math.abs(sourceAmount - targetAmount) > 0.01 then
       return false
     end
     local sourcePrice = sourceParams[7].value * 100
     local targetPrice = targetParams[7].value * 100
+    debugTrace("  Comparing source price " .. tostring(sourcePrice) .. " to target price " .. tostring(targetPrice))
     if sourcePrice ~= targetPrice then
       return false
     end
     local sourceLocations = sourceParams[4].value or {}
     local targetLocations = targetParams[4].value or {}
+    debugTrace("  Comparing source locations " .. tostring(#sourceLocations) .. " to target locations " .. tostring(#targetLocations))
     if #sourceLocations ~= #targetLocations then
       return false
     end
     for j = 1, #sourceLocations do
-      if sourceLocations[j] ~= targetLocations[j] then
+      debugTrace("   Comparing source location " .. tostring(sourceLocations[j]) .. " to target location " .. tostring(targetLocations[j]) .. " = " .. tostring(tostring(sourceLocations[j]) == tostring(targetLocations[j])))
+      if tostring(sourceLocations[j]) ~= tostring(targetLocations[j]) then
         return false
       end
     end
@@ -500,7 +516,7 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, sourceCargoCapacity, targ
   return true
 end
 
-function MimicRepeatOrders.cloneOrdersExecute()
+function MimicRepeatOrders.cloneOrdersExecute(skipResult)
   debugTrace("Executing clone orders from source " .. getShipName(MimicRepeatOrders.sourceId) .. " to " .. tostring(#MimicRepeatOrders.targetIds) .. " targets")
   local sourceOrders = MimicRepeatOrders.getRepeatOrders(MimicRepeatOrders.sourceId)
   local targets = MimicRepeatOrders.targetIds
@@ -512,6 +528,7 @@ function MimicRepeatOrders.cloneOrdersExecute()
     local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId)
     if MimicRepeatOrders.isOrdersEqual(sourceOrders, sourceCargoCapacity, targetId, targetCargoCapacity) then
       debugTrace("Target orders on " .. getShipName(targetId) .. " already match source orders, skipping")
+      processedOrders = processedOrders + #sourceOrders
     else
       if not C.RemoveAllOrders(targetId) then
         debugTrace("failed to clear target order queue for " .. getShipName(targetId))
@@ -548,27 +565,100 @@ function MimicRepeatOrders.cloneOrdersExecute()
     end
   end
   MimicRepeatOrders.cloneOrdersReset()
-  if processedOrders == 0 then
-    MimicRepeatOrders.reportError({ info = "NoOrdersCloned" })
-  else
-    MimicRepeatOrders.reportSuccess({ info = "OrdersCloned", details = string.format("%d orders cloned to %d targets", processedOrders, #targets) })
+
+  if skipResult == nil  or skipResult == false then
+    if processedOrders == 0 then
+      MimicRepeatOrders.reportError({ info = "NoOrdersCloned" })
+    else
+      MimicRepeatOrders.reportSuccess({ info = "OrdersCloned", details = string.format("%d orders cloned to %d targets", processedOrders, #targets) })
+    end
   end
 end
 
-function MimicRepeatOrders.cloneOrdersCancel()
-  MimicRepeatOrders.cloneOrdersReset()
-  MimicRepeatOrders.reportSuccess({result = "cancelled"})
-end
-
-function MimicRepeatOrders.clearSource()
-  MimicRepeatOrders.cloneOrdersReset()
-  MimicRepeatOrders.args.command = "unmark_source"
-  MimicRepeatOrders.MarkSourceOnMap()
-end
 
 function MimicRepeatOrders.cloneOrdersReset()
   MimicRepeatOrders.sourceId = 0
   MimicRepeatOrders.targetIds = {}
+end
+
+function MimicRepeatOrders.GetSubordinates()
+  local sourceId = MimicRepeatOrders.sourceId
+  local source = ConvertStringToLuaID(tostring(sourceId))
+  local subordinatesList = GetSubordinates(source)
+  local subordinates = {}
+  debugTrace(" Commander " .. getShipName(sourceId) .. " has " .. tostring(#subordinatesList) .. " subordinates")
+  for j = 1, #subordinatesList do
+    local subordinate = subordinatesList[j]
+    local subordinateId = toUniverseId(subordinatesList[j])
+    local group = GetComponentData(subordinate, "subordinategroup")
+    local assignment = ffi.string(C.GetSubordinateGroupAssignment(sourceId, group))
+    debugTrace(" Subordinate " .. getShipName(subordinateId) .. " is assigned to group " .. tostring(group) .. " with assignment " .. tostring(assignment))
+    if assignment == "assist" then
+      subordinates[#subordinates + 1] = subordinateId
+    end
+  end
+  return subordinates
+end
+
+function MimicRepeatOrders.repeatOrdersCommandersRefresh()
+  local commanders =  MimicRepeatOrders.args.list or {}
+  local checkSubordinates = MimicRepeatOrders.args.checkSubordinates == 1
+  local repeatOrdersCommanders = {}
+  debugTrace("Refreshing repeat orders for " .. tostring(#commanders) .. " commanders, checkSubordinates=" .. tostring(checkSubordinates))
+  for i = 1, #commanders do
+    MimicRepeatOrders.cloneOrdersReset()
+    local commanderId = toUniverseId(commanders[i])
+    if (commanderId ~= nil) then
+      MimicRepeatOrders.sourceId = commanderId
+      local valid, errorData = MimicRepeatOrders.isValidSourceShip()
+      debugTrace(" Refreshing commander " .. getShipName(commanderId) .. " validity: " .. tostring(valid) .. ", error: " .. tostring(errorData and errorData.info))
+      if valid then
+        local subordinates = {}
+        local commanderOrders = MimicRepeatOrders.getRepeatOrders(commanderId)
+        if MimicRepeatOrders.repeatOrdersCommanders[commanderId]  ==  nil then
+          debugTrace(" Commander " .. getShipName(commanderId) .. " caching repeat orders for the first time")
+          repeatOrdersCommanders[commanderId] = commanderOrders
+          if #commanderOrders > 0 then
+            for j = 1, #commanderOrders do
+              local order = repeatOrdersCommanders[commanderId][j]
+              debugTrace(" Commander " .. getShipName(commanderId) .. " has repeat order " .. tostring(order.order) .. " at index " .. tostring(order.idx))
+              order.params = GetOrderParams(commanderId, order.idx)
+            end
+            subordinates = MimicRepeatOrders.GetSubordinates()
+          end
+        else
+          debugTrace(" Commander " .. getShipName(commanderId) .. " repeat orders already cached")
+          local cargoCapacity = MimicRepeatOrders.getCargoCapacity(commanderId)
+          if MimicRepeatOrders.isOrdersEqual(commanderOrders, cargoCapacity, nil, cargoCapacity, MimicRepeatOrders.repeatOrdersCommanders[commanderId]) then
+
+              debugTrace(" Commander " .. getShipName(commanderId) .. " orders unchanged")
+            if (checkSubordinates) then
+              subordinates = MimicRepeatOrders.GetSubordinates()
+            end
+          else
+            debugTrace(" Commander " .. getShipName(commanderId) .. " orders changed, updating cache and subordinates")
+            repeatOrdersCommanders[commanderId] = commanderOrders
+            for j = 1, #commanderOrders do
+              local order = repeatOrdersCommanders[commanderId][j]
+              debugTrace(" Commander " .. getShipName(commanderId) .. " has repeat order " .. tostring(order.order) .. " at index " .. tostring(order.idx))
+              order.param = GetOrderParams(commanderId, order.idx)
+            end
+            subordinates = MimicRepeatOrders.GetSubordinates()
+          end
+        end
+        if #subordinates > 0 then
+          debugTrace(" Commander " .. getShipName(commanderId) .. " has " .. tostring(#subordinates) .. " subordinates to check")
+          MimicRepeatOrders.targetIds = subordinates
+          MimicRepeatOrders.cloneOrdersExecute(true)
+        end
+      else
+       commanders[i] = 0
+      end
+    end
+  end
+  MimicRepeatOrders.repeatOrdersCommanders = repeatOrdersCommanders
+  MimicRepeatOrders.cloneOrdersReset()
+  MimicRepeatOrders.reportSuccess()
 end
 
 function MimicRepeatOrders.ProcessRequest(_, _)
@@ -585,6 +675,8 @@ function MimicRepeatOrders.ProcessRequest(_, _)
     else
       MimicRepeatOrders.reportError(errorData)
     end
+  elseif MimicRepeatOrders.args.command == "refresh_commanders" then
+    MimicRepeatOrders.repeatOrdersCommandersRefresh()
   else
     debugTrace("ProcessRequest received unknown command: " .. tostring(MimicRepeatOrders.args.command))
     MimicRepeatOrders.reportError({ info = "UnknownCommand" })
