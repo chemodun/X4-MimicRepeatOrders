@@ -61,6 +61,7 @@ ffi.cdef [[
 
 local MimicRepeatOrders = {
   args = {},
+  queueArgs = {},
   playerId = 0,
   mapMenu = {},
   validOrders = {
@@ -188,7 +189,7 @@ function MimicRepeatOrders.reportError(extraInfo)
 end
 
 function MimicRepeatOrders.reportSuccess(extraStatus)
-  data = MimicRepeatOrders.args or {}
+  local data = MimicRepeatOrders.args or {}
   data.result = extraStatus or "success"
   MimicRepeatOrders.recordResult()
 end
@@ -312,19 +313,22 @@ function MimicRepeatOrders.getArgs()
     local list = GetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersRequest")
     if type(list) == "table" and #list > 0 then
       debugTrace("debug","getArgs retrieved " .. tostring(#list) .. " entries from blackboard")
-      MimicRepeatOrders.args = list[1]
-      table.remove(list, 1)
-      if #list > 0 then
-        SetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersRequest", list)
-      else
-        SetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersRequest", nil)
+      for i = 1, #list do
+        debugTrace("trace"," getArgs entry " .. tostring(i) .. ": " .. tostring(list[i]))
+        MimicRepeatOrders.queueArgs[#MimicRepeatOrders.queueArgs + 1] = list[i]
       end
-      return true
+      SetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersRequest", nil)
     elseif list ~= nil then
       debugTrace("debug","getArgs received non-table payload of type " .. type(list))
     else
       debugTrace("debug","getArgs found no blackboard entries for player " .. tostring(MimicRepeatOrders.playerId))
     end
+  end
+  if #MimicRepeatOrders.queueArgs > 0 then
+    MimicRepeatOrders.args = MimicRepeatOrders.queueArgs[1]
+    table.remove(MimicRepeatOrders.queueArgs, 1)
+    debugTrace("debug","getArgs processing command ".. tostring(MimicRepeatOrders.args and MimicRepeatOrders.args.command) .. " with " .. tostring(#MimicRepeatOrders.queueArgs) .. " remaining in queue")
+    return true
   end
   return false
 end
