@@ -277,23 +277,26 @@ function MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
   end
   local ordersToRemove = {}
   local validOrders = {}
+  local validOrdersCount = 0
   for i=1, #orders do
     if MimicRepeatOrders.validOrders[orders[i].order] == nil then
       ordersToRemove[#ordersToRemove + 1] = orders[i]
     else
-      if validOrders[orders[i].order] == nil then
+      if validOrders[orders[i].order] ~= true then
         validOrders[orders[i].order] = true
+        validOrdersCount = validOrdersCount + 1
       end
     end
   end
-  if (#validOrders < 2) then
+  debugTrace("debug","Source ship " .. getShipName(sourceId) .. " has " .. tostring(validOrdersCount) .. " valid repeat orders and " .. tostring(#ordersToRemove) .. " invalid repeat orders to remove from a total of " .. tostring(#orders) .. " repeat orders")
+  if (validOrdersCount < 2) then
     return false, { info = "NoEnoughValidRepeatOrders"}
   end
   if #ordersToRemove > 0 then
     debugTrace("debug","Source ship " .. getShipName(sourceId) .. " has " .. tostring(#ordersToRemove) .. " invalid repeat orders to remove")
     for i = #ordersToRemove, 1, -1 do
       local order = ordersToRemove[i]
-      debugTrace("debug"," Removing invalid repeat order " .. tostring(order.order) .. " at index " .. tostring(order.idx))
+      debugTrace("trace"," Removing invalid repeat order " .. tostring(order.order) .. " at index " .. tostring(order.idx))
       C.RemoveOrder(sourceId, order.idx, true, false)
     end
   end
@@ -524,7 +527,7 @@ function MimicRepeatOrders.GetSubordinates()
   return subordinates
 end
 
-function MimicRepeatOrders.clearRepeatOrders(skipResult)
+function MimicRepeatOrders.clearRepeatOrders(skipResult, clearCommander)
   if MimicRepeatOrders.args.targets ~= nil and type(MimicRepeatOrders.args.targets) == "table" then
     MimicRepeatOrders.targetIds = {}
     for i = 1, #MimicRepeatOrders.args.targets do
@@ -542,6 +545,9 @@ function MimicRepeatOrders.clearRepeatOrders(skipResult)
         C.CreateOrder(targetId, "Wait", true)
         C.EnablePlannedDefaultOrder(targetId, false)
         C.ResetOrderLoop(targetId)
+      end
+      if clearCommander == true then
+        MimicRepeatOrders.removeCommander(targetId)
       end
     end
   end
@@ -617,7 +623,7 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
         if subordinatesCount > 0 then
           debugTrace("debug"," Commander " .. getShipName(commanderId) .. " is invalid, skipping " .. tostring(subordinatesCount) .. " subordinates")
           MimicRepeatOrders.targetIds = MimicRepeatOrders.GetSubordinates()
-          MimicRepeatOrders.clearRepeatOrders(true)
+          MimicRepeatOrders.clearRepeatOrders(true, true)
         end
       end
     end
@@ -636,6 +642,7 @@ function MimicRepeatOrders.ProcessRequest(_, _)
   debugTrace("debug","ProcessRequest received command: " .. tostring(MimicRepeatOrders.args.command))
   if MimicRepeatOrders.args.command == "clone_orders" then
     local valid, errorData = MimicRepeatOrders.cloneOrdersPrepare()
+    debugTrace("debug"," cloneOrdersPrepare returned valid=" .. tostring(valid) .. ", error=" .. tostring(errorData and errorData.info))
     if valid then
       MimicRepeatOrders.cloneOrdersExecute()
     else
@@ -644,7 +651,7 @@ function MimicRepeatOrders.ProcessRequest(_, _)
   elseif MimicRepeatOrders.args.command == "refresh_commanders" then
     MimicRepeatOrders.repeatOrdersCommandersRefresh()
   elseif MimicRepeatOrders.args.command == "clear_orders" then
-    MimicRepeatOrders.clearRepeatOrders()
+    MimicRepeatOrders.clearRepeatOrders(false, false)
   else
     debugTrace("debug","ProcessRequest received unknown command: " .. tostring(MimicRepeatOrders.args.command))
     MimicRepeatOrders.reportError({ info = "UnknownCommand" })
