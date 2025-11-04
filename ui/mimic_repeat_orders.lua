@@ -259,7 +259,7 @@ function MimicRepeatOrders.getCargoCapacity(shipId)
 end
 
 
-function MimicRepeatOrders.isValidSourceShip()
+function MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
   local sourceId = MimicRepeatOrders.sourceId
   if MimicRepeatOrders.args ~= nil and MimicRepeatOrders.args.source ~= nil then
     sourceId = toUniverseId(MimicRepeatOrders.args.source)
@@ -275,9 +275,26 @@ function MimicRepeatOrders.isValidSourceShip()
   if #orders == 0 then
     return false, { info = "NoRepeatOrders" }
   end
-  for _, order in ipairs(orders) do
-    if MimicRepeatOrders.validOrders[order.order] == nil then
-      return false, { info = "InvalidRepeatOrder", detail = "order=" .. tostring(order.order) }
+  local ordersToRemove = {}
+  local validOrders = {}
+  for i=1, #orders do
+    if MimicRepeatOrders.validOrders[orders[i].order] == nil then
+      ordersToRemove[#ordersToRemove + 1] = orders[i]
+    else
+      if validOrders[orders[i].order] == nil then
+        validOrders[orders[i].order] = true
+      end
+    end
+  end
+  if (#validOrders < 2) then
+    return false, { info = "NoEnoughValidRepeatOrders"}
+  end
+  if #ordersToRemove > 0 then
+    debugTrace("debug","Source ship " .. getShipName(sourceId) .. " has " .. tostring(#ordersToRemove) .. " invalid repeat orders to remove")
+    for i = #ordersToRemove, 1, -1 do
+      local order = ordersToRemove[i]
+      debugTrace("debug"," Removing invalid repeat order " .. tostring(order.order) .. " at index " .. tostring(order.idx))
+      C.RemoveOrder(sourceId, order.idx, true, false)
     end
   end
   return true
@@ -335,7 +352,7 @@ end
 
 function MimicRepeatOrders.cloneOrdersPrepare()
   MimicRepeatOrders.targetIds = {}
-  local valid, errorData = MimicRepeatOrders.isValidSourceShip()
+  local valid, errorData = MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
   if not valid then
     return false, errorData
   end
@@ -543,7 +560,7 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
     local commanderId = toUniverseId(commanders[i])
     if (commanderId ~= nil) then
       MimicRepeatOrders.sourceId = commanderId
-      local valid, errorData = MimicRepeatOrders.isValidSourceShip()
+      local valid, errorData = MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
       local subordinatesCount = MimicRepeatOrders.countSubordinates()
       debugTrace("debug"," Refreshing commander " .. getShipName(commanderId) .. " validity: " .. tostring(valid) .. ", error: " .. tostring(errorData and errorData.info) .. ", subordinates: " .. tostring(subordinatesCount))
       if valid and subordinatesCount > 0 then
