@@ -13,6 +13,7 @@ The impossible is possible: use the Mimic behavior for Repeat Orders.
 
 - Only one level of `Mimic` behavior is supported. Ships assigned as subordinates to subordinate ships will not be able to mimic their orders.
 - Changes to subordinate ship's will be reflected with small delay, up to 30 seconds.
+- Currently working only with `Sell` and `Buy` orders. Other order types may be supported in future versions.
 
 ## Requirements
 
