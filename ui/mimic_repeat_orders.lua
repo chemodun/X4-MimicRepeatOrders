@@ -65,10 +65,10 @@ local MimicRepeatOrders = {
   playerId = 0,
   mapMenu = {},
   validOrders = {
-    SingleBuy  = {enabled = false, name = "", params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo", wareIdx = 1}, pricethreshold = {idx = 7, converter = "price"}}},
-    SingleSell = {enabled = false, name = "", params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo", wareIdx = 1}, pricethreshold = {idx = 7, converter = "price"}}},
-    MiningPlayer = {enabled = false, name = "", params = {destination = {idx = 1}, ware = {idx = 3}}},
-    MiningPlayerSector = {enabled = false, name = "", params = {destination = {idx = 1}, ware = {idx = 2}}},
+    SingleBuy  = {enabled = false, name = "", wareIdx = 1, params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo"}, pricethreshold = {idx = 7, converter = "price"}}},
+    SingleSell = {enabled = false, name = "", wareIdx = 1, params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo"}, pricethreshold = {idx = 7, converter = "price"}}},
+    MiningPlayer = {enabled = false, name = "", wareIdx = 3, params = {destination = {idx = 1}, ware = {idx = 3}}},
+    MiningPlayerSector = {enabled = false, name = "", wareIdx = 2, params = {destination = {idx = 1}, ware = {idx = 2}}},
   },
   sourceId = 0,
   loopOrdersSkillLimit = 0,
@@ -380,7 +380,9 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
     local sourceParams = GetOrderParams(MimicRepeatOrders.sourceId, sourceOrder.idx)
     local targetParams = targetOrder.params or GetOrderParams(targetId, targetOrder.idx)
     local paramsDef = MimicRepeatOrders.validOrders[sourceOrder.order].params
+    local wareIdx = MimicRepeatOrders.validOrders[sourceOrder.order].wareIdx
     if paramsDef ~= nil then
+
       for paramName, paramDef in pairs(paramsDef) do
         if paramDef.converter == "listOfString" then
           local sourceItems = sourceParams[paramDef.idx].value or {}
@@ -408,24 +410,21 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
               if isOneShip and sourceValue ~= targetValue then
                 return false
               end
-              if not isOneShip then
-                local wareIdx = paramDef.wareIdx
-                if (wareIdx ~= nil) then
-                  local sourceWareId = sourceParams[wareIdx].value
-                  local targetWareId = targetParams[wareIdx].value
-                  if sourceWareId ~= targetWareId then
-                    return false
-                  end
-                  local transporttype = GetWareData(sourceWareId, "transport")
-                  local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
-                  local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
-                  local adjustedSourceValue = (sourceCargoCapacity > 0) and sourceValue / sourceCargoCapacity or 0
-                  local adjustedTargetValue = (targetCargoCapacity > 0) and targetValue / targetCargoCapacity or 0
-                  debugTrace("trace","   Adjusted source value via cargo from " .. tostring(adjustedSourceValue) .. " vs " .. tostring(adjustedTargetValue) )
+              if not isOneShip and wareIdx ~= nil then
+                local sourceWareId = sourceParams[wareIdx].value
+                local targetWareId = targetParams[wareIdx].value
+                if sourceWareId ~= targetWareId then
+                  return false
+                end
+                local transporttype = GetWareData(sourceWareId, "transport")
+                local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
+                local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
+                local adjustedSourceValue = (sourceCargoCapacity > 0) and sourceValue / sourceCargoCapacity or 0
+                local adjustedTargetValue = (targetCargoCapacity > 0) and targetValue / targetCargoCapacity or 0
+                debugTrace("trace","   Adjusted source value via cargo from " .. tostring(adjustedSourceValue) .. " vs " .. tostring(adjustedTargetValue) )
 
-                  if math.abs(adjustedSourceValue - adjustedTargetValue) > 0.01 then
-                    return false
-                  end
+                if math.abs(adjustedSourceValue - adjustedTargetValue) > 0.01 then
+                  return false
                 end
               end
             end
