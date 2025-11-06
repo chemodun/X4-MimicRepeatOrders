@@ -462,25 +462,42 @@ function MimicRepeatOrders.cloneOrdersExecute(skipResult)
           local order = sourceOrders[j]
           if order.ware == nil then
             local orderParams = GetOrderParams(MimicRepeatOrders.sourceId, order.idx)
-            order.ware = orderParams[1].value
-            order.amount = (sourceCargoCapacity > 0) and (orderParams[5].value / sourceCargoCapacity ) or 0
-            order.price = orderParams[7].value * 100
-            order.locations = orderParams[4].value
-          end
-          local newOrderIdx = C.CreateOrder(targetId, order.order, false)
-          if newOrderIdx and newOrderIdx > 0 then
-            SetOrderParam(targetId, newOrderIdx, 1, nil, order.ware)
-            SetOrderParam(targetId, newOrderIdx, 5, nil, math.floor(order.amount * targetCargoCapacity + 0.5))
-            SetOrderParam(targetId, newOrderIdx, 7, nil, order.price)
-            local locations = order.locations or {}
-            for j = 1, #locations do
-              SetOrderParam(targetId, newOrderIdx, 4, nil, locations[j])
+            if MimicRepeatOrders.validOrders[order.order] == nil then
+              debugTrace("debug"," Unexpected not valid order " .. tostring(order.order))
+            else
+              local orderParamsDef = MimicRepeatOrders.validOrders[order.order].params
+              if (#orderParams ~= nil) then
+                local newOrderIdx = C.CreateOrder(targetId, order.order, false)
+                if newOrderIdx and newOrderIdx > 0 then
+                  for i = 1, #orderParams do
+                    local orderParam = orderParams[i]
+                    local orderParamDef = orderParamsDef[orderParam.name]
+                    if orderParamDef ~= nil then
+                      if orderParamDef.converter == "listOfString"  then
+                        for k = 1, #orderParam.value do
+                          SetOrderParam(targetId, newOrderIdx, orderParamsDef.idx, nil, orderParam.value[k])
+                        end
+                      else
+                        local value = orderParam.value
+                        if orderParamDef.converter == "viaCargo" then
+                          if value > 0 then
+                            value = (sourceCargoCapacity > 0) and math.floor(orderParam.value / sourceCargoCapacity * targetCargoCapacity + 0.5) or 0
+                          end
+                        elseif orderParamDef.converter == "price" then
+                          value = orderParam.value * 100
+                        end
+                        SetOrderParam(targetId, newOrderIdx, orderParamsDef.idx, nil, value)
+                      end
+                    end
+                  end
+                  C.EnableOrder(targetId, newOrderIdx)
+                  processedOrders = processedOrders + 1
+                  debugTrace("debug"," Successfully created order " .. tostring(order.order) .. " on target " .. getShipName(targetId))
+                else
+                  debugTrace("debug"," Failed to create order " .. tostring(order.order) .. " on target " .. getShipName(targetId))
+                end
+              end
             end
-            debugTrace("debug"," Created order " .. tostring(order.order) .. " on target " .. getShipName(targetId) .. " at index " .. tostring(newOrderIdx))
-            C.EnableOrder(targetId, newOrderIdx)
-            processedOrders = processedOrders + 1
-          else
-            debugTrace("debug"," Failed to create order " .. tostring(order.order) .. " on target " .. getShipName(targetId))
           end
         end
       end
