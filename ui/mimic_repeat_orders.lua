@@ -65,10 +65,10 @@ local MimicRepeatOrders = {
   playerId = 0,
   mapMenu = {},
   validOrders = {
-    SingleBuy  = {enabled = false, name="", params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo"}, pricethreshold = {idx = 7, converter = "price"}}},
-    SingleSell = {enabled = false, name="", params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo"}, pricethreshold = {idx = 7, converter = "price"}}},
-    MiningPlayer = {enabled = false, name="", params = {destination = {idx = 1}, ware = {idx = 3}}},
-    MiningPlayerSector = {enabled = false, name="", params = {destination = {idx = 1}, ware = {idx = 2}}},
+    SingleBuy  = {enabled = false, name = "", params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo", wareIdx = 1}, pricethreshold = {idx = 7, converter = "price"}}},
+    SingleSell = {enabled = false, name = "", params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo", wareIdx = 1}, pricethreshold = {idx = 7, converter = "price"}}},
+    MiningPlayer = {enabled = false, name = "", params = {destination = {idx = 1}, ware = {idx = 3}}},
+    MiningPlayerSector = {enabled = false, name = "", params = {destination = {idx = 1}, ware = {idx = 2}}},
   },
   sourceId = 0,
   loopOrdersSkillLimit = 0,
@@ -238,13 +238,14 @@ function MimicRepeatOrders.checkShip(shipId)
   if not C.IsComponentOperational(shipId) or C.IsComponentWrecked(shipId) then
     return false, { info = "ShipNotOperational" }
   end
-  if MimicRepeatOrders.getCargoCapacity(shipId) == 0 then
-    return false, { info = "NoCargoCapacity" }
-  end
+  -- ToDo: add cargo capacity check back in later
+  -- if MimicRepeatOrders.getCargoCapacity(shipId) == 0 then
+  --   return false, { info = "NoCargoCapacity" }
+  -- end
   return true
 end
 
-function MimicRepeatOrders.getCargoCapacity(shipId)
+function MimicRepeatOrders.getCargoCapacity(shipId, transportType)
   local menu = MimicRepeatOrders.mapMenu
   local shipId = toUniverseId(shipId)
   local numStorages = C.GetNumCargoTransportTypes(shipId, true)
@@ -253,7 +254,7 @@ function MimicRepeatOrders.getCargoCapacity(shipId)
   local capacity = 0
   for i = 0, count - 1 do
     local tags = menu.getTransportTagsFromString(ffi.string(buf[i].transport))
-    if tags.container == true then
+    if tags[transportType] == true then
       capacity = capacity + buf[i].capacity
     end
   end
@@ -383,7 +384,7 @@ function MimicRepeatOrders.cloneOrdersPrepare()
   return true
 end
 
-function MimicRepeatOrders.isOrdersEqual(sourceOrders, sourceCargoCapacity, targetId, targetCargoCapacity, targetOrders)
+function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, isOneShip)
 
   if targetId ~= nil then
     if MimicRepeatOrders.isLoopEnabled(targetId) == false then
@@ -404,34 +405,60 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, sourceCargoCapacity, targ
     end
     local sourceParams = GetOrderParams(MimicRepeatOrders.sourceId, sourceOrder.idx)
     local targetParams = targetOrder.params or GetOrderParams(targetId, targetOrder.idx)
-    local sourceWare = sourceParams[1].value
-    local targetWare = targetParams[1].value
-    debugTrace("trace","  Comparing source ware " .. tostring(sourceWare) .. " to target ware " .. tostring(targetWare))
-    if sourceWare ~= targetWare then
-      return false
-    end
-    local sourceAmount = (sourceCargoCapacity > 0) and sourceParams[5].value or 0
-    local targetAmount = (targetCargoCapacity > 0) and (targetParams[5].value * sourceCargoCapacity / targetCargoCapacity) or 0
-    debugTrace("trace","  Comparing source amount " .. tostring(sourceAmount) .. " to target amount " .. tostring(targetAmount))
-    if math.abs(sourceAmount - targetAmount) > 0.01 then
-      return false
-    end
-    local sourcePrice = sourceParams[7].value * 100
-    local targetPrice = targetParams[7].value * 100
-    debugTrace("trace","  Comparing source price " .. tostring(sourcePrice) .. " to target price " .. tostring(targetPrice))
-    if sourcePrice ~= targetPrice then
-      return false
-    end
-    local sourceLocations = sourceParams[4].value or {}
-    local targetLocations = targetParams[4].value or {}
-    debugTrace("trace","  Comparing source locations " .. tostring(#sourceLocations) .. " to target locations " .. tostring(#targetLocations))
-    if #sourceLocations ~= #targetLocations then
-      return false
-    end
-    for j = 1, #sourceLocations do
-      debugTrace("trace","   Comparing source location " .. tostring(sourceLocations[j]) .. " to target location " .. tostring(targetLocations[j]) .. " = " .. tostring(tostring(sourceLocations[j]) == tostring(targetLocations[j])))
-      if tostring(sourceLocations[j]) ~= tostring(targetLocations[j]) then
-        return false
+    local paramsDef = MimicRepeatOrders.validOrders[sourceOrder.order].params
+    if paramsDef ~= nil then
+      for paramName, paramDef in pairs(paramsDef) do
+        if paramDef.converter == "listOfString" then
+          local sourceItems = sourceParams[paramDef.idx].value or {}
+          local targetItems = targetParams[paramDef.idx].value or {}
+          debugTrace("trace","  Comparing source items " .. tostring(#sourceItems) .. " to target items " .. tostring(#targetItems))
+          if #sourceItems ~= #targetItems then
+            return false
+          end
+          for j = 1, #sourceItems do
+            debugTrace("trace","   Comparing source item " .. tostring(sourceItems[j]) .. " to target item " .. tostring(targetItems[j]) .. " = " .. tostring(tostring(sourceItems[j]) == tostring(targetItems[j])))
+            if tostring(sourceItems[j]) ~= tostring(targetItems[j]) then
+              return false
+            end
+          end
+        else
+          local sourceValue = sourceParams[paramDef.idx].value
+          local targetValue = targetParams[paramDef.idx].value
+          debugTrace("trace","  Comparing source param " .. tostring(paramName) .. " value " .. tostring(sourceValue) .. " to target value " .. tostring(targetValue))
+          if paramDef.converter == "viaCargo" then
+            if sourceValue > 0 and targetValue == 0 then
+              return false
+            elseif sourceValue == 0 and targetValue > 0 then
+              return false
+            elseif sourceValue > 0 and targetValue > 0 then
+              if isOneShip and sourceValue ~= targetValue then
+                return false
+              end
+              if not isOneShip then
+                local wareIdx = paramDef.wareIdx
+                if (wareIdx ~= nil) then
+                  local sourceWareId = sourceParams[wareIdx].value
+                  local targetWareId = targetParams[wareIdx].value
+                  if sourceWareId ~= targetWareId then
+                    return false
+                  end
+                  local transporttype = GetWareData(sourceWareId, "transport")
+                  local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
+                  local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
+                  local adjustedSourceValue = (sourceCargoCapacity > 0) and sourceValue / sourceCargoCapacity or 0
+                  local adjustedTargetValue = (targetCargoCapacity > 0) and targetValue / targetCargoCapacity or 0
+                  debugTrace("trace","   Adjusted source value via cargo from " .. tostring(adjustedSourceValue) .. " vs " .. tostring(adjustedTargetValue) )
+
+                  if math.abs(adjustedSourceValue - adjustedTargetValue) > 0.01 then
+                    return false
+                  end
+                end
+              end
+            end
+          elseif sourceValue ~= targetValue then
+            return false
+          end
+        end
       end
     end
   end
@@ -442,13 +469,11 @@ function MimicRepeatOrders.cloneOrdersExecute(skipResult)
   debugTrace("debug","Executing clone orders from source " .. getShipName(MimicRepeatOrders.sourceId) .. " to " .. tostring(#MimicRepeatOrders.targetIds) .. " targets")
   local sourceOrders = MimicRepeatOrders.getRepeatOrders(MimicRepeatOrders.sourceId)
   local targets = MimicRepeatOrders.targetIds
-  local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId)
   local processedOrders = 0
   for i = 1, #targets do
     local targetId = targets[i]
     debugTrace("debug","Cloning orders to target " .. getShipName(targetId))
-    local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId)
-    if MimicRepeatOrders.isOrdersEqual(sourceOrders, sourceCargoCapacity, targetId, targetCargoCapacity) then
+    if MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId) then
       debugTrace("debug","Target orders on " .. getShipName(targetId) .. " already match source orders, skipping")
       processedOrders = processedOrders + #sourceOrders
     else
@@ -481,7 +506,14 @@ function MimicRepeatOrders.cloneOrdersExecute(skipResult)
                         local value = orderParam.value
                         if orderParamDef.converter == "viaCargo" then
                           if value > 0 then
-                            value = (sourceCargoCapacity > 0) and math.floor(orderParam.value / sourceCargoCapacity * targetCargoCapacity + 0.5) or 0
+                            local wreIdx = orderParamDef.wareIdx
+                            if (wreIdx ~= nil) then
+                              local wareId = orderParams[wreIdx].value
+                              local transporttype = GetWareData(wareId, "transport")
+                              local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
+                              local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
+                              value = (sourceCargoCapacity > 0) and math.floor(orderParam.value / sourceCargoCapacity * targetCargoCapacity + 0.5) or 0
+                            end
                           end
                         elseif orderParamDef.converter == "price" then
                           value = orderParam.value * 100
@@ -604,7 +636,6 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
           end
         else
           debugTrace("debug"," Commander " .. getShipName(commanderId) .. " repeat orders already cached")
-          local cargoCapacity = MimicRepeatOrders.getCargoCapacity(commanderId)
           if MimicRepeatOrders.isOrdersEqual(commanderOrders, cargoCapacity, nil, cargoCapacity, MimicRepeatOrders.repeatOrdersCommanders[commanderId]) then
 
             debugTrace("debug"," Commander " .. getShipName(commanderId) .. " orders unchanged")
