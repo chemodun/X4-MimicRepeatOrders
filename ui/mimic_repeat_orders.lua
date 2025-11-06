@@ -65,8 +65,10 @@ local MimicRepeatOrders = {
   playerId = 0,
   mapMenu = {},
   validOrders = {
-    SingleBuy  = "",
-    SingleSell = "",
+    SingleBuy  = {enabled = false, name="", params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo"}, pricethreshold = {idx = 7, converter = "price"}}},
+    SingleSell = {enabled = false, name="", params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo"}, pricethreshold = {idx = 7, converter = "price"}}},
+    MiningPlayer = {enabled = false, name="", params = {destination = {idx = 1}, ware = {idx = 3}}},
+    MiningPlayerSector = {enabled = false, name="", params = {destination = {idx = 1}, ware = {idx = 2}}},
   },
   sourceId = 0,
   loopOrdersSkillLimit = 0,
@@ -279,7 +281,7 @@ function MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
   local validOrders = {}
   local validOrdersCount = 0
   for i=1, #orders do
-    if MimicRepeatOrders.validOrders[orders[i].order] == nil then
+    if MimicRepeatOrders.validOrders[orders[i].order] == nil or MimicRepeatOrders.validOrders[orders[i].order].enabled == false then
       ordersToRemove[#ordersToRemove + 1] = orders[i]
     else
       if validOrders[orders[i].order] ~= true then
@@ -664,8 +666,9 @@ function MimicRepeatOrders.OrderNamesCollect()
     local found = C.GetOrderDefinition(buf, orderDef)
     if found then
       local orderName = ffi.string(buf.name)
-      MimicRepeatOrders.validOrders[orderDef] = orderName
-      debugTrace("debug","Order definition " .. orderDef .. " resolved to name " .. MimicRepeatOrders.validOrders[orderDef])
+      MimicRepeatOrders.validOrders[orderDef].name = orderName
+      MimicRepeatOrders.validOrders[orderDef].enabled = true
+      debugTrace("debug","Order definition " .. orderDef .. " resolved to name " .. MimicRepeatOrders.validOrders[orderDef].name)
     else
       debugTrace("debug","Order definition " .. orderDef .. " could not be resolved")
     end
