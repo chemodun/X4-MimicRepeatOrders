@@ -122,16 +122,6 @@ local function toUniverseId(value)
   return ConvertStringTo64Bit(idStr)
 end
 
-local function copyAndEnrichTable(src, extraInfo)
-  local dest = {}
-  for k, v in pairs(src) do
-    dest[k] = v
-  end
-  for k, v in pairs(extraInfo) do
-    dest[k] = v
-  end
-  return dest
-end
 
 local function getShipName(shipId)
   if shipId == 0 then
@@ -140,22 +130,6 @@ local function getShipName(shipId)
   local name = GetComponentData(ConvertStringToLuaID(tostring(shipId)), "name")
   local idCode = ffi.string(C.GetObjectIDCode(shipId))
   return string.format("%s (%s)", name, idCode)
-end
-
-local function isTopCommander(shipId)
-  local shipId = toUniverseId(shipId)
-  local n = C.GetNumAllCommanders(shipId, 0)
-  return n > 0
-end
-
-local function centerFrameVertically(frame)
-  frame.properties.height = frame:getUsedHeight() + Helper.borderSize
-  if (frame.properties.height > Helper.viewHeight ) then
-    frame.properties.y = Helper.borderSize
-    frame.properties.height = Helper.viewHeight - 2 * Helper.borderSize
-  else
-    frame.properties.y = (Helper.viewHeight - frame.properties.height) / 2
-  end
 end
 
 function MimicRepeatOrders.recordResult()
@@ -207,7 +181,7 @@ function MimicRepeatOrders.getRepeatOrders(shipId)
   local shipId = toUniverseId(shipId)
   local numOrders = tonumber(C.GetNumOrders(shipId)) or 0
   local buf = ffi.new("Order[?]", numOrders)
-  local count = tonumber(C.GetOrders(buf, numOrders, shipId)) or 0
+  local count = C.GetOrders(buf, numOrders, shipId)
   local orders = {}
   for i = 0, numOrders - 1 do
     local orderData = buf[i]
