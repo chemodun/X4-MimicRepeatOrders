@@ -702,6 +702,73 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
   MimicRepeatOrders.reportSuccess()
 end
 
+function MimicRepeatOrders.addOrderToQueue()
+
+  local args = MimicRepeatOrders.args or {}
+  if args.ship == nil then
+    MimicRepeatOrders.reportError({info ="missing_ship"})
+    return
+  end
+
+  local shipId = toUniverseId(args.ship)
+  if shipId == 0 then
+    MimicRepeatOrders.reportError({info ="invalid_ship"})
+    return
+  end
+
+  local order = args.order
+  if order == nil or type(order) ~= "string" then
+    MimicRepeatOrders.reportError({info ="missing_order"})
+    return
+  end
+
+  local orderDef = MimicRepeatOrders.validOrders[order]
+  if orderDef == nil or orderDef.enabled == false then
+    MimicRepeatOrders.reportError({info ="invalid_order"})
+    return
+  end
+
+  debugTrace("debug","Adding order " .. tostring(order) .. " to ship " .. getShipName(shipId))
+
+  local orderParamsDefs = orderDef.params
+
+  local params = args.params
+  if params == nil or type(params) ~= "table" then
+    MimicRepeatOrders.reportError({info ="missing_params"})
+    return
+  end
+
+
+  for key, value in pairs(orderParamsDefs) do
+    if params[key] == nil then
+      MimicRepeatOrders.reportError({info ="missing_param", detail = "Missing parameter: " .. tostring(key)})
+      return
+    end
+    debugTrace("trace"," Param " .. tostring(key) .. " value " .. tostring(params[key]))
+  end
+
+
+  local newOrderIdx = C.CreateOrder(shipId, order, false)
+  if newOrderIdx and newOrderIdx > 0 then
+    for name, orderParamDef in pairs(orderParamsDefs) do
+      local value = params[name]
+      if orderParamDef ~= nil and value ~= nil then
+        if orderParamDef.converter == "listOfString"  then
+          for k = 1, #value do
+            SetOrderParam(shipId, newOrderIdx, orderParamDef.idx, nil, value[k])
+          end
+        else
+          SetOrderParam(shipId, newOrderIdx, orderParamDef.idx, nil, value)
+        end
+      end
+    end
+    C.EnableOrder(shipId, newOrderIdx)
+    debugTrace("debug"," Successfully created order " .. tostring(order) .. " on target " .. getShipName(shipId))
+  else
+    debugTrace("debug"," Failed to create order " .. tostring(order) .. " on target " .. getShipName(shipId))
+  end
+end
+
 function MimicRepeatOrders.ProcessRequest(_, _)
   if not MimicRepeatOrders.getArgs() then
     debugTrace("debug","ProcessRequest invoked without args or invalid args")
@@ -721,6 +788,8 @@ function MimicRepeatOrders.ProcessRequest(_, _)
     MimicRepeatOrders.repeatOrdersCommandersRefresh()
   elseif MimicRepeatOrders.args.command == "clear_orders" then
     MimicRepeatOrders.clearRepeatOrders(false, false)
+  elseif MimicRepeatOrders.args.command == "add_order_to_queue" then
+    MimicRepeatOrders.addOrderToQueue()
   else
     debugTrace("debug","ProcessRequest received unknown command: " .. tostring(MimicRepeatOrders.args.command))
     MimicRepeatOrders.reportError({ info = "UnknownCommand" })
