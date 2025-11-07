@@ -65,10 +65,50 @@ local MimicRepeatOrders = {
   playerId = 0,
   mapMenu = {},
   validOrders = {
-    SingleBuy  = {enabled = false, name = "", wareIdx = 1, params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo"}, pricethreshold = {idx = 7, converter = "price"}}},
-    SingleSell = {enabled = false, name = "", wareIdx = 1, params = {ware = {idx = 1}, locations = {idx = 4, converter="listOfString"}, maxamount = {idx = 5, converter = "viaCargo"}, pricethreshold = {idx = 7, converter = "price"}}},
-    MiningPlayer = {enabled = false, name = "", wareIdx = 3, params = {destination = {idx = 1}, ware = {idx = 3}}},
-    MiningPlayerSector = {enabled = false, name = "", wareIdx = 2, params = {destination = {idx = 1}, ware = {idx = 2}}},
+    SingleBuy  = {
+      enabled = false,
+      name = "",
+      wareIdx = 1,
+      params = {
+        ware = {idx = 1},
+        locations = {idx = 4, converter="listOfString"},
+        maxamount = {idx = 5, converter = "viaCargo"},
+        pricethreshold = {idx = 7, converter = "price"}
+      },
+      paramsOrder = {"ware", "locations", "maxamount", "pricethreshold"}
+    },
+    SingleSell = {
+      enabled = false,
+      name = "",
+      wareIdx = 1,
+      params = {
+        ware = {idx = 1},
+        locations = {idx = 4, converter="listOfString"},
+        maxamount = {idx = 5, converter = "viaCargo"},
+        pricethreshold = {idx = 7, converter = "price"}
+      },
+      paramsOrder = {"ware", "locations", "maxamount", "pricethreshold"}
+    },
+    MiningPlayer = {
+      enabled = false,
+      name = "",
+      wareIdx = 3,
+      params = {
+        destination = {idx = 1},
+        ware = {idx = 3}
+      },
+      paramsOrder = {"destination", "ware"}
+    },
+    MiningPlayerSector = {
+      enabled = false,
+      name = "",
+      wareIdx = 2,
+      params = {
+        location = {idx = 1},
+        ware = {idx = 2}
+      },
+      paramsOrder = {"location", "ware"}
+    },
   },
   sourceId = 0,
   loopOrdersSkillLimit = 0,
@@ -503,49 +543,51 @@ function MimicRepeatOrders.cloneOrdersExecute(skipResult)
         C.SetOrderLoop(targetId, 0, false)
         for j = 1, #sourceOrders do
           local order = sourceOrders[j]
-          if order.ware == nil then
+          local orderDef = MimicRepeatOrders.validOrders[order.order]
+          if orderDef == nil  or not orderDef.enabled then
+            debugTrace("debug"," Unexpected not valid order " .. tostring(order.order))
+          else
             local orderParams = GetOrderParams(MimicRepeatOrders.sourceId, order.idx)
-            if MimicRepeatOrders.validOrders[order.order] == nil then
-              debugTrace("debug"," Unexpected not valid order " .. tostring(order.order))
-            else
-              local orderParamsDef = MimicRepeatOrders.validOrders[order.order].params
-              if (#orderParams ~= nil) then
-                local newOrderIdx = C.CreateOrder(targetId, order.order, false)
-                if newOrderIdx and newOrderIdx > 0 then
-                  for i = 1, #orderParams do
-                    local orderParam = orderParams[i]
-                    local orderParamDef = orderParamsDef[orderParam.name]
-                    if orderParamDef ~= nil then
-                      if orderParamDef.converter == "listOfString"  then
-                        for k = 1, #orderParam.value do
-                          SetOrderParam(targetId, newOrderIdx, orderParamsDef.idx, nil, orderParam.value[k])
-                        end
-                      else
-                        local value = orderParam.value
-                        if orderParamDef.converter == "viaCargo" then
-                          if value > 0 then
-                            local wreIdx = orderParamDef.wareIdx
-                            if (wreIdx ~= nil) then
-                              local wareId = orderParams[wreIdx].value
-                              local transporttype = GetWareData(wareId, "transport")
-                              local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
-                              local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
-                              value = (sourceCargoCapacity > 0) and math.floor(orderParam.value / sourceCargoCapacity * targetCargoCapacity + 0.5) or 0
-                            end
-                          end
-                        elseif orderParamDef.converter == "price" then
-                          value = orderParam.value * 100
-                        end
-                        SetOrderParam(targetId, newOrderIdx, orderParamsDef.idx, nil, value)
-                      end
+            local orderParamsDefs = orderDef.params
+            local orderParamsDefsOrder = orderDef.paramsOrder
+            if (orderParams ~= nil and #orderParams > 0 and orderParamsDefs ~= nil and orderParamsDefsOrder ~= nil and #orderParamsDefsOrder > 0) then
+              local newOrderIdx = C.CreateOrder(targetId, order.order, false)
+              if newOrderIdx and newOrderIdx > 0 then
+                for k = 1, #orderParamsDefsOrder do
+                  local orderParamName = orderParamsDefsOrder[k]
+                  local orderParamDef = orderParamsDefs[orderParamName]
+                  debugTrace("trace"," Processing order param " .. tostring(orderParamName) .. " with definition " .. tostring(orderParamDef))
+                  local orderParam = orderParams[orderParamDef.idx]
+                  debugTrace("trace","  Setting order param[" .. tostring(orderParamDef.idx) .. "] " .. tostring(orderParam.name) .. " to value " .. tostring(orderParam.value) .. " with definition " .. tostring(orderParamDef) .. " and converter " .. tostring(orderParamDef and orderParamDef.converter))
+                  if orderParamDef.converter == "listOfString"  then
+                    for l = 1, #orderParam.value do
+                      SetOrderParam(targetId, newOrderIdx, orderParamDef.idx, nil, orderParam.value[l])
                     end
+                  else
+                    local value = orderParam.value
+                    if orderParamDef.converter == "viaCargo" then
+                      if value > 0 then
+                        local wreIdx = orderParamDef.wareIdx
+                        if (wreIdx ~= nil) then
+                          local wareId = orderParams[wreIdx].value
+                          local transporttype = GetWareData(wareId, "transport")
+                          local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
+                          local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
+                          value = (sourceCargoCapacity > 0) and math.floor(orderParam.value / sourceCargoCapacity * targetCargoCapacity + 0.5) or 0
+                        end
+                      end
+                    elseif orderParamDef.converter == "price" then
+                      value = orderParam.value * 100
+                    end
+                    debugTrace("trace","   Final value to set: " .. tostring(value) .. " at order index " .. tostring(newOrderIdx) .. " param index " .. tostring(orderParamDef.idx))
+                    SetOrderParam(targetId, newOrderIdx, orderParamDef.idx, nil, value)
                   end
-                  C.EnableOrder(targetId, newOrderIdx)
-                  processedOrders = processedOrders + 1
-                  debugTrace("debug"," Successfully created order " .. tostring(order.order) .. " on target " .. getShipName(targetId))
-                else
-                  debugTrace("debug"," Failed to create order " .. tostring(order.order) .. " on target " .. getShipName(targetId))
                 end
+                C.EnableOrder(targetId, newOrderIdx)
+                processedOrders = processedOrders + 1
+                debugTrace("debug"," Successfully created order " .. tostring(order.order) .. " on target " .. getShipName(targetId))
+              else
+                debugTrace("debug"," Failed to create order " .. tostring(order.order) .. " on target " .. getShipName(targetId))
               end
             end
           end
