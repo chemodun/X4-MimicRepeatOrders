@@ -196,7 +196,7 @@ function MimicRepeatOrders.getRepeatOrders(shipId)
   return orders
 end
 
-function MimicRepeatOrders.checkShip(shipId)
+function MimicRepeatOrders.checkShip(shipId, transportTypes)
   local shipId = toUniverseId(shipId)
   if shipId == 0 then
     return false, { info = "InvalidShipID" }
@@ -212,10 +212,14 @@ function MimicRepeatOrders.checkShip(shipId)
   if not C.IsComponentOperational(shipId) or C.IsComponentWrecked(shipId) then
     return false, { info = "ShipNotOperational" }
   end
-  -- ToDo: add cargo capacity check back in later
-  -- if MimicRepeatOrders.getCargoCapacity(shipId) == 0 then
-  --   return false, { info = "NoCargoCapacity" }
-  -- end
+  if (transportTypes ~= nil and type(transportTypes) == "table" and #transportTypes > 0) then
+    for i = 1, #transportTypes do
+      local transportType = transportTypes[i]
+      if MimicRepeatOrders.getCargoCapacity(shipId, transportType) == 0 then
+        return false, { info = "NoCargoCapacity" }
+      end
+    end
+  end
   return true
 end
 
@@ -280,9 +284,9 @@ function MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
   return true
 end
 
-function MimicRepeatOrders.isValidTargetShip(target)
+function MimicRepeatOrders.isValidTargetShip(target, transportTypes)
   local targetId = toUniverseId(target)
-  local valid, errorData = MimicRepeatOrders.checkShip(targetId)
+  local valid, errorData = MimicRepeatOrders.checkShip(targetId, transportTypes)
   if not valid then
     return false, errorData
   end
@@ -330,6 +334,39 @@ function MimicRepeatOrders.getArgs()
   return false
 end
 
+function MimicRepeatOrders.collectSourceWaresTransportTypes()
+  local sourceId = MimicRepeatOrders.sourceId
+  local orders = MimicRepeatOrders.getRepeatOrders(sourceId)
+  local wares = {}
+  for i = 1, #orders do
+    local order = orders[i]
+    if MimicRepeatOrders.validOrders[order.order] ~= nil then
+      local params = GetOrderParams(sourceId, order.idx)
+      local wareIdx = MimicRepeatOrders.validOrders[order.order].wareIdx
+      if wareIdx ~= nil and params[wareIdx] ~= nil then
+        local wareId = params[wareIdx].value
+        wares[wareId] = true
+      end
+    end
+  end
+
+  local transportTypes = {}
+  for wareId, _ in pairs(wares) do
+    local transportType = GetWareData(wareId, "transport")
+    if transportType ~= nil and transportTypes[transportType] == nil then
+      transportTypes[transportType] = true
+    end
+  end
+
+  local transportTypesList = {}
+  for transportType, _ in pairs(transportTypes) do
+    transportTypesList[#transportTypesList + 1] = transportType
+  end
+  return transportTypesList
+end
+
+
+
 function MimicRepeatOrders.cloneOrdersPrepare()
   MimicRepeatOrders.targetIds = {}
   local valid, errorData = MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
@@ -340,9 +377,10 @@ function MimicRepeatOrders.cloneOrdersPrepare()
   MimicRepeatOrders.sourceId = toUniverseId(args.source)
   local targets = args.targets or {}
   local targetIds = {}
+  local transportTypes = MimicRepeatOrders.collectSourceWaresTransportTypes()
   for i = 1, #targets do
     local targetId = toUniverseId(targets[i])
-    local valid, errorData = MimicRepeatOrders.isValidTargetShip(targetId)
+    local valid, errorData = MimicRepeatOrders.isValidTargetShip(targetId, transportTypes)
     if valid then
       targetIds[#targetIds + 1] = targetId
     else
@@ -632,8 +670,9 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
         if #subordinates > 0 then
           debugTrace("debug"," Commander " .. getShipName(commanderId) .. " has " .. tostring(#subordinates) .. " subordinates to check")
           MimicRepeatOrders.targetIds = {}
+          local transportTypes = MimicRepeatOrders.collectSourceWaresTransportTypes()
           for j = 1, #subordinates do
-            local valid, errorData = MimicRepeatOrders.isValidTargetShip(subordinates[j])
+            local valid, errorData = MimicRepeatOrders.isValidTargetShip(subordinates[j], transportTypes)
             if not valid then
               debugTrace("debug","  Subordinate " .. getShipName(subordinates[j]) .. " is invalid, removing from list")
               MimicRepeatOrders.removeCommander(subordinates[j])
