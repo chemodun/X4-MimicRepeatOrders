@@ -448,6 +448,7 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
             elseif sourceValue == 0 and targetValue > 0 then
               return false
             elseif sourceValue > 0 and targetValue > 0 then
+              debugTrace("trace","   isOneShip " .. tostring(isOneShip) .. " source value " .. tostring(sourceValue) .. " vs target value " .. tostring(targetValue))
               if isOneShip and sourceValue ~= targetValue then
                 return false
               end
@@ -460,6 +461,7 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
                 local transporttype = GetWareData(sourceWareId, "transport")
                 local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
                 local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
+                debugTrace("trace","   Transport type " .. tostring(transporttype) .. " source cargo capacity " .. tostring(sourceCargoCapacity) .. " vs target cargo capacity " .. tostring(targetCargoCapacity))
                 local calculatedTargetValue = (sourceCargoCapacity > 0) and sourceValue * targetCargoCapacity / sourceCargoCapacity or 0
                 debugTrace("trace","   Target value: " .. tostring(targetValue) .. " vs calculated target value: " .. tostring(calculatedTargetValue) )
 
@@ -652,7 +654,7 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
           end
         else
           debugTrace("debug"," Commander " .. getShipName(commanderId) .. " repeat orders already cached")
-          if MimicRepeatOrders.isOrdersEqual(commanderOrders, cargoCapacity, nil, cargoCapacity, MimicRepeatOrders.repeatOrdersCommanders[commanderId]) then
+          if MimicRepeatOrders.isOrdersEqual(commanderOrders, nil, MimicRepeatOrders.repeatOrdersCommanders[commanderId], true) then
 
             debugTrace("debug"," Commander " .. getShipName(commanderId) .. " orders unchanged")
             if (checkSubordinates) then
