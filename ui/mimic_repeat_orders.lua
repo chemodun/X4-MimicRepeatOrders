@@ -427,8 +427,11 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
                 end
               end
             end
-          elseif sourceValue ~= targetValue then
-            return false
+          else
+            debugTrace("trace","   Comparing source value " .. tostring(sourceValue) .. " to target value " .. tostring(targetValue))
+            if sourceValue ~= targetValue then
+              return false
+            end
           end
         end
       end
