@@ -106,24 +106,31 @@
 
         <cue name="Add_Order_To_Queue" instantiate="true">
           <conditions>
-            <event_object_signalled object="player.entity" param="'mimic_repeat_orders_add_order'" />
-            <check_value value="@event.param.isclass.ship" />
-            <check_value value="@event.param.trueowner == faction.player" />
-            <check_value value="@event.param.isoperational" />
-            <check_value value="@event.param.iswreck" negate="true" />
-            <check_value value="@event.param.hasorderloop" />
+            <event_object_signalled object="player.entity" param="'mimic_repeat_orders_add_order_to_queue'" />
+            <debug_text text="'MimicRepeatOrders: Add_Order_To_Queue invoked with param: %s'.[@event.param2]" chance="100" filter="scripts" />
             <check_value value="@event.param2 != null" />
-            <check_value value="(typeof event.param2).isstring" />
-            <check_value value="@event.param3 != null" />
-            <check_value value="typeof event.param3 == datatype.table" />
+            <check_value value="typeof event.param2 == datatype.table" />
+            <check_value value="@event.param2.$ship != null" />
+            <check_value value="@event.param2.$ship.isclass.ship" />
+            <check_value value="@event.param2.$ship.trueowner == faction.player" />
+            <check_value value="@event.param2.$ship.isoperational" />
+            <check_value value="@event.param2.$ship.iswreck" negate="true" />
+            <check_value value="@event.param2.$ship.hasorderloop" />
+            <check_value value="@event.param2.$order != null" />
+            <check_value value="(typeof event.param2.$order).isstring" />
+            <check_value value="@event.param2.$params != null" />
+            <check_value value="typeof event.param2.$params == datatype.table" />
           </conditions>
           <actions>
+            <debug_text
+              text="'MimicRepeatOrders: Add_Order_To_Queue invoked on target %s with order: %s and params: %s'.[@event.param2, @event.param2.$order, @event.param2.$params, typeof @event.param2.$params]"
+              chance="100" filter="scripts" />
             <set_value name="$args"
               exact="table[
-                $command            = 'add_order_queue',
-                $target             = @event.param,
-                $order              = @event.param2,
-                $params             = @event.param3,
+                $command            = 'add_order_to_queue',
+                $ship             = @event.param2.$ship,
+                $order              = @event.param2.$order,
+                $params             = @event.param2.$params.clone,
               ]" />
             <include_actions ref="Send_Request" />
           </actions>
