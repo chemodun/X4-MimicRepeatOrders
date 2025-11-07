@@ -419,11 +419,10 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
                 local transporttype = GetWareData(sourceWareId, "transport")
                 local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
                 local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
-                local adjustedSourceValue = (sourceCargoCapacity > 0) and sourceValue / sourceCargoCapacity or 0
-                local adjustedTargetValue = (targetCargoCapacity > 0) and targetValue / targetCargoCapacity or 0
-                debugTrace("trace","   Adjusted source value via cargo from " .. tostring(adjustedSourceValue) .. " vs " .. tostring(adjustedTargetValue) )
+                local calculatedTargetValue = (sourceCargoCapacity > 0) and sourceValue * targetCargoCapacity / sourceCargoCapacity or 0
+                debugTrace("trace","   Adjusted source value via cargo from " .. tostring(adjustedSourceValue) .. " vs " .. tostring(calculatedTargetValue) )
 
-                if math.abs(adjustedSourceValue - adjustedTargetValue) > 0.01 then
+                if math.abs(targetValue - calculatedTargetValue) > 0.01 then
                   return false
                 end
               end
