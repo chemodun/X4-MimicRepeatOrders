@@ -334,9 +334,12 @@ function MimicRepeatOrders.getArgs()
   return false
 end
 
-function MimicRepeatOrders.collectSourceWaresTransportTypes()
+function MimicRepeatOrders.collectSourceWaresTransportTypes(orders)
   local sourceId = MimicRepeatOrders.sourceId
-  local orders = MimicRepeatOrders.getRepeatOrders(sourceId)
+  local orders = orders
+  if orders == nil or type(orders) ~= "table" then
+    orders = MimicRepeatOrders.getRepeatOrders(sourceId)
+  end
   local wares = {}
   for i = 1, #orders do
     local order = orders[i]
@@ -670,7 +673,7 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
         if #subordinates > 0 then
           debugTrace("debug"," Commander " .. getShipName(commanderId) .. " has " .. tostring(#subordinates) .. " subordinates to check")
           MimicRepeatOrders.targetIds = {}
-          local transportTypes = MimicRepeatOrders.collectSourceWaresTransportTypes()
+          local transportTypes = MimicRepeatOrders.collectSourceWaresTransportTypes(commanderOrders)
           for j = 1, #subordinates do
             local valid, errorData = MimicRepeatOrders.isValidTargetShip(subordinates[j], transportTypes)
             if not valid then
