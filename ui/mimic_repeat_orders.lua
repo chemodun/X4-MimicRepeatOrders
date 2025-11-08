@@ -470,11 +470,13 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
           local targetItems = targetParams[paramDef.idx].value or {}
           debugTrace("trace", "  Comparing source items " .. tostring(#sourceItems) .. " to target items " .. tostring(#targetItems))
           if #sourceItems ~= #targetItems then
+            debugTrace("trace", "   Source items count " .. tostring(#sourceItems) .. " does not match target items count " .. tostring(#targetItems))
             return false
           end
           for j = 1, #sourceItems do
             debugTrace("trace", "   Comparing source item #" .. tostring(j) .. ": " .. tostring(sourceItems[j]) .. " to target item #" .. tostring(j) .. ":  " .. tostring(targetItems[j]) .. " = " .. tostring(tostring(sourceItems[j]) == tostring(targetItems[j])))
             if tostring(sourceItems[j]) ~= tostring(targetItems[j]) then
+              debugTrace("trace", "   Source item #" .. tostring(j) .. " " .. tostring(sourceItems[j]) .. " does not match target item #" .. tostring(j) .. " " .. tostring(targetItems[j]))
               return false
             end
           end
@@ -484,28 +486,33 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
           debugTrace("trace", "  Comparing source param " .. tostring(paramName) .. " value " .. tostring(sourceValue) .. " to target value " .. tostring(targetValue))
           if paramDef.converter == "viaCargo" then
             if sourceValue > 0 and targetValue == 0 then
+              debugTrace("trace", "   Source value " .. tostring(sourceValue) .. " does not match target value " .. tostring(targetValue))
               return false
             elseif sourceValue == 0 and targetValue > 0 then
+              debugTrace("trace", "   Source value " .. tostring(sourceValue) .. " does not match target value " .. tostring(targetValue))
               return false
             elseif sourceValue > 0 and targetValue > 0 then
               debugTrace("trace", "   isOneShip " .. tostring(isOneShip) .. " source value " .. tostring(sourceValue) .. " vs target value " .. tostring(targetValue))
               if isOneShip and sourceValue ~= targetValue then
+                debugTrace("trace", "   Is One Ship. Source value " .. tostring(sourceValue) .. " does not match target value " .. tostring(targetValue))
                 return false
               end
               if not isOneShip and wareIdx ~= nil then
                 local sourceWareId = sourceParams[wareIdx].value
                 local targetWareId = targetParams[wareIdx].value
                 if sourceWareId ~= targetWareId then
+                  debugTrace("trace", "   Source ware ID " .. tostring(sourceWareId) .. " does not match target ware ID " .. tostring(targetWareId))
                   return false
                 end
                 local transporttype = GetWareData(sourceWareId, "transport")
                 local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
                 local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
                 debugTrace("trace", "   Transport type " .. tostring(transporttype) .. " source cargo capacity " .. tostring(sourceCargoCapacity) .. " vs target cargo capacity " .. tostring(targetCargoCapacity))
-                local calculatedTargetValue = (sourceCargoCapacity > 0) and sourceValue * targetCargoCapacity / sourceCargoCapacity or 0
+                local calculatedTargetValue = (sourceCargoCapacity > 0) and math.floor(sourceValue * targetCargoCapacity / sourceCargoCapacity) or 0
                 debugTrace("trace", "   Target value: " .. tostring(targetValue) .. " vs calculated target value: " .. tostring(calculatedTargetValue) )
 
                 if math.abs(targetValue - calculatedTargetValue) > 0.01 then
+                  debugTrace("trace", "   Target value " .. tostring(targetValue) .. " does not match calculated target value " .. tostring(calculatedTargetValue))
                   return false
                 end
               end
@@ -517,6 +524,7 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
               targetValue = tostring(targetValue)
             end
             if sourceValue ~= targetValue then
+              debugTrace("trace", "   Source value " .. tostring(sourceValue) .. " does not match target value " .. tostring(targetValue))
               return false
             end
           end
@@ -572,13 +580,15 @@ function MimicRepeatOrders.cloneOrdersExecute(skipResult)
                     local value = orderParam.value
                     if orderParamDef.converter == "viaCargo" then
                       if value > 0 then
-                        local wreIdx = orderParamDef.wareIdx
-                        if (wreIdx ~= nil) then
-                          local wareId = orderParams[wreIdx].value
+                        local wareIdx = orderDef.wareIdx
+                        if (wareIdx ~= nil) then
+                          local wareId = orderParams[wareIdx].value
                           local transporttype = GetWareData(wareId, "transport")
                           local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
                           local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
-                          value = (sourceCargoCapacity > 0) and math.floor(orderParam.value / sourceCargoCapacity * targetCargoCapacity + 0.5) or 0
+                          debugTrace("trace", "   Transport type " .. tostring(transporttype) .. " source cargo capacity " .. tostring(sourceCargoCapacity) .. " vs target cargo capacity " .. tostring(targetCargoCapacity))
+                          value = (sourceCargoCapacity > 0) and math.floor(orderParam.value / sourceCargoCapacity * targetCargoCapacity) or 0
+                          debugTrace("trace", "   Converted viaCargo value: " .. tostring(value) .. " for ware " .. tostring(wareId))
                         end
                       end
                     elseif orderParamDef.converter == "price" then
