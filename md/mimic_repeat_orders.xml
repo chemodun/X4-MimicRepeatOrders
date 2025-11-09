@@ -128,7 +128,7 @@
             <set_value name="$args"
               exact="table[
                 $command            = 'add_order_to_queue',
-                $ship             = @event.param2.$ship,
+                $ship               = @event.param2.$ship,
                 $order              = @event.param2.$order,
                 $params             = @event.param2.$params.clone,
               ]" />
