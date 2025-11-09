@@ -94,7 +94,7 @@ local MimicRepeatOrders = {
       name = "",
       wareIdx = 3,
       params = {
-        destination = {idx = 1, compare="asString"},
+        destination = {idx = 1, converter="position"},
         ware = {idx = 3}
       },
       paramsOrder = {"destination", "ware"}
@@ -517,6 +517,25 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
                 end
               end
             end
+          elseif paramDef.converter == "position" then
+            local sourceRefObject = sourceValue[1]
+            local targetRefObject = targetValue[1]
+            debugTrace("trace", "   Comparing source position ref object " .. tostring(sourceRefObject) .. " to target ref object " .. tostring(targetRefObject))
+            if tostring(sourceRefObject) ~= tostring(targetRefObject) then
+              debugTrace("trace", "   Source position ref object " .. tostring(sourceRefObject) .. " does not match target ref object " .. tostring(targetRefObject))
+              return false
+            end
+            local sourceOffset = sourceValue[2]
+            local targetOffset = targetValue[2]
+            local axises = {"x", "y", "z"}
+            for j = 1, 3 do
+              local axis = axises[j]
+              debugTrace("trace", "   Comparing source position at axis " .. tostring(axis) .. " " .. tostring(sourceOffset[axis]) .. " to target position " .. tostring(targetOffset[axis]))
+              if math.abs(sourceOffset[axis] - targetOffset[axis]) > 0.01 then
+                debugTrace("trace", "   Source position at axis " .. tostring(axis) .. " " .. tostring(sourceOffset[axis]) .. " does not match target position " .. tostring(targetOffset[axis]))
+                return false
+              end
+            end
           else
             debugTrace("trace", "   Comparing source value " .. tostring(sourceValue) .. " to target value " .. tostring(targetValue))
             if (paramDef.compare == "asString") then
@@ -593,6 +612,17 @@ function MimicRepeatOrders.cloneOrdersExecute(skipResult)
                       end
                     elseif orderParamDef.converter == "price" then
                       value = orderParam.value * 100
+                    elseif orderParamDef.converter == "position" then
+                      local sourcePosition = orderParam.value
+                      local targetPosition = {}
+                      targetPosition[1] = ConvertStringToLuaID(tostring(sourcePosition[1]))
+                      debugTrace("trace", "   Preparing position ref object: " .. tostring(targetPosition[1]))
+                      targetPosition[2] = {}
+                      targetPosition[2][1] = sourcePosition[2].x
+                      targetPosition[2][2] = sourcePosition[2].y
+                      targetPosition[2][3] = sourcePosition[2].z
+                      debugTrace("trace", string.format("   Preparing position offset: x=%.2f y=%.2f z=%.2f", targetPosition[2][1], targetPosition[2][2], targetPosition[2][3]))
+                      value = targetPosition
                     end
                     debugTrace("trace", "   Final value to set: '" .. tostring(value) .. "' at order index " .. tostring(newOrderIdx) .. " param index " .. tostring(orderParamDef.idx))
                     SetOrderParam(targetId, newOrderIdx, orderParamDef.idx, nil, value)
