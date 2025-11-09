@@ -8,12 +8,14 @@ The impossible is possible: use the Mimic behavior for Repeat Orders.
 [*] The subordinate ship will copy the [b]Repeat Orders[/b] of its commander.
 [*] Ships with insufficient AI Pilot skill to use [b]Repeat Orders[/b] will be not assigned or removed.
 [*] Any changes to the commander's [b]Repeat Orders[/b] will be automatically reflected on the subordinate ship.
+[*] Works with [b]Sell[/b], [b]Buy[/b] and [b]MiningPlayer[/b] vanilla orders.
+[*] Works with [b]MiningPlayerSector[/b] order from the [b]Mining in Sector for Mimic Repeat Orders[/b] mod.
 [/list]
 [h2][b]Limitations[/b][/h2]
 [list]
 [*] Only one level of [b]Mimic[/b] behavior is supported. Ships assigned as subordinates to subordinate ships will not be able to mimic their orders.
 [*] Changes to subordinate ship's will be reflected with small delay, up to 30 seconds.
-[*] Currently working only with [b]Sell[/b] and [b]Buy[/b] orders. Other order types may be supported in future versions.
+[*] Supports only limited amount of orders. Other order types may be supported in future versions.
 [/list]
 [h2][b]Requirements[/b][/h2]
 [list]
@@ -51,6 +53,19 @@ Video demonstration of the Mimic Repeat Orders. Version 1.00
 [/list]
 [h2][b]Changelog[/b][/h2]
 
+[h2][1.10] - 2025-11-09[/h2]
+[list]
+[*] Added
+[list]
+[*] Framework to support additional order types.
+[*] Support of [b]MiningPlayer[/b] and [b]MiningPlayerSector[/b].
+[*] Cleanup not supported orders.
+[/list]
+[*] Fixed
+[list]
+[*] Several small bugs.
+[/list]
+[/list]
 [h2][1.01] - 2025-11-04[/h2]
 [list]
 [*] Fixed
