@@ -454,7 +454,7 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
   for i = 1, #sourceOrders do
     local sourceOrder = sourceOrders[i]
     local targetOrder = targetOrders[i]
-    debugTrace("trace", " Comparing source order " .. tostring(i) .. ": " .. tostring(sourceOrder.order) .. " to target order " .. tostring(i) .. ": " .. tostring(targetOrder.order))
+    debugTrace("trace", " Comparing source order " .. tostring(i) .. ": '" .. tostring(sourceOrder.order) .. "' to target order " .. tostring(i) .. ": '" .. tostring(targetOrder.order) .. "'")
     if sourceOrder.order ~= targetOrder.order then
       return false
     end
@@ -468,51 +468,57 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
         if paramDef.converter == "listOfString" then
           local sourceItems = sourceParams[paramDef.idx].value or {}
           local targetItems = targetParams[paramDef.idx].value or {}
-          debugTrace("trace", "  Comparing source items " .. tostring(#sourceItems) .. " to target items " .. tostring(#targetItems))
+          debugTrace("trace", "  Comparing source items: '" .. tostring(#sourceItems) .. "' to target items: '" .. tostring(#targetItems) .. "'")
           if #sourceItems ~= #targetItems then
-            debugTrace("trace", "   Source items count " .. tostring(#sourceItems) .. " does not match target items count " .. tostring(#targetItems))
+            debugTrace("trace", "   Source items count: '" .. tostring(#sourceItems) .. "' does not match target items count: '" .. tostring(#targetItems) .. "'")
             return false
           end
           for j = 1, #sourceItems do
-            debugTrace("trace", "   Comparing source item #" .. tostring(j) .. ": " .. tostring(sourceItems[j]) .. " to target item #" .. tostring(j) .. ":  " .. tostring(targetItems[j]) .. " = " .. tostring(tostring(sourceItems[j]) == tostring(targetItems[j])))
+            debugTrace("trace", "   Comparing source item #" .. tostring(j) .. ": '" .. tostring(sourceItems[j]) .. "' to target item #" .. tostring(j) .. ": '" .. tostring(targetItems[j]) .. "' = " .. tostring(tostring(sourceItems[j]) == tostring(targetItems[j])))
             if tostring(sourceItems[j]) ~= tostring(targetItems[j]) then
-              debugTrace("trace", "   Source item #" .. tostring(j) .. " " .. tostring(sourceItems[j]) .. " does not match target item #" .. tostring(j) .. " " .. tostring(targetItems[j]))
+              debugTrace("trace", "   Source item #" .. tostring(j) .. ": '" .. tostring(sourceItems[j]) .. "' does not match target item #" .. tostring(j) .. ": '" .. tostring(targetItems[j]) .. "'")
               return false
             end
           end
         else
           local sourceValue = sourceParams[paramDef.idx].value
           local targetValue = targetParams[paramDef.idx].value
-          debugTrace("trace", "  Comparing source param " .. tostring(paramName) .. " value " .. tostring(sourceValue) .. " to target value " .. tostring(targetValue))
+          debugTrace("trace", "  Comparing source param: '" .. tostring(paramName) .. "' value: '" .. tostring(sourceValue) .. "' to target value: '" .. tostring(targetValue) .. "'")
           if paramDef.converter == "viaCargo" then
             if sourceValue > 0 and targetValue == 0 then
-              debugTrace("trace", "   Source value " .. tostring(sourceValue) .. " does not match target value " .. tostring(targetValue))
+              debugTrace("trace", "   Source value: '" .. tostring(sourceValue) .. "' does not match target value '" .. tostring(targetValue) .. "'")
               return false
             elseif sourceValue == 0 and targetValue > 0 then
-              debugTrace("trace", "   Source value " .. tostring(sourceValue) .. " does not match target value " .. tostring(targetValue))
+              debugTrace("trace", "   Source value: '" .. tostring(sourceValue) .. "' does not match target value: '" .. tostring(targetValue) .. "'")
+              return false
+            elseif sourceValue == 0 and targetValue > 0 then
+              debugTrace("trace", "   Source value: '" .. tostring(sourceValue) .. "' does not match target value: '" .. tostring(targetValue) .. "'")
+              return false
+            elseif sourceValue == 0 and targetValue > 0 then
+              debugTrace("trace", "   Source value: '" .. tostring(sourceValue) .. "' does not match target value: '" .. tostring(targetValue) .. "'")
               return false
             elseif sourceValue > 0 and targetValue > 0 then
-              debugTrace("trace", "   isOneShip " .. tostring(isOneShip) .. " source value " .. tostring(sourceValue) .. " vs target value " .. tostring(targetValue))
+              debugTrace("trace", "   isOneShip: '" .. tostring(isOneShip) .. "' source value: '" .. tostring(sourceValue) .. "' vs target value: '" .. tostring(targetValue) .. "'")
               if isOneShip and sourceValue ~= targetValue then
-                debugTrace("trace", "   Is One Ship. Source value " .. tostring(sourceValue) .. " does not match target value " .. tostring(targetValue))
+                debugTrace("trace", "   Is One Ship. Source value: '" .. tostring(sourceValue) .. "' does not match target value: '" .. tostring(targetValue) .. "'")
                 return false
               end
               if not isOneShip and wareIdx ~= nil then
                 local sourceWareId = sourceParams[wareIdx].value
                 local targetWareId = targetParams[wareIdx].value
                 if sourceWareId ~= targetWareId then
-                  debugTrace("trace", "   Source ware ID " .. tostring(sourceWareId) .. " does not match target ware ID " .. tostring(targetWareId))
+                  debugTrace("trace", "   Source ware ID: '" .. tostring(sourceWareId) .. "' does not match target ware ID: '" .. tostring(targetWareId) .. "'" )
                   return false
                 end
                 local transporttype = GetWareData(sourceWareId, "transport")
                 local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
                 local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
-                debugTrace("trace", "   Transport type " .. tostring(transporttype) .. " source cargo capacity " .. tostring(sourceCargoCapacity) .. " vs target cargo capacity " .. tostring(targetCargoCapacity))
+                debugTrace("trace", "   Transport type: '" .. tostring(transporttype) .. "' source cargo capacity: '" .. tostring(sourceCargoCapacity) .. "' vs target cargo capacity: '" .. tostring(targetCargoCapacity) .. "'")
                 local calculatedTargetValue = (sourceCargoCapacity > 0) and math.floor(sourceValue * targetCargoCapacity / sourceCargoCapacity) or 0
-                debugTrace("trace", "   Target value: " .. tostring(targetValue) .. " vs calculated target value: " .. tostring(calculatedTargetValue) )
+                debugTrace("trace", "   Target value: '" .. tostring(targetValue) .. "' vs calculated target value: '" .. tostring(calculatedTargetValue) .. "'")
 
                 if math.abs(targetValue - calculatedTargetValue) > 0.01 then
-                  debugTrace("trace", "   Target value " .. tostring(targetValue) .. " does not match calculated target value " .. tostring(calculatedTargetValue))
+                  debugTrace("trace", "   Target value: '" .. tostring(targetValue) .. "' does not match calculated target value: '" .. tostring(calculatedTargetValue) .. "'")
                   return false
                 end
               end
@@ -520,9 +526,9 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
           elseif paramDef.converter == "position" then
             local sourceRefObject = sourceValue[1]
             local targetRefObject = targetValue[1]
-            debugTrace("trace", "   Comparing source position ref object " .. tostring(sourceRefObject) .. " to target ref object " .. tostring(targetRefObject))
+            debugTrace("trace", "   Comparing source position ref object: '" .. tostring(sourceRefObject) .. "' to target ref object: '" .. tostring(targetRefObject) .. "'")
             if tostring(sourceRefObject) ~= tostring(targetRefObject) then
-              debugTrace("trace", "   Source position ref object " .. tostring(sourceRefObject) .. " does not match target ref object " .. tostring(targetRefObject))
+              debugTrace("trace", "   Source position ref object: '" .. tostring(sourceRefObject) .. "' does not match target ref object: '" .. tostring(targetRefObject) .. "'")
               return false
             end
             local sourceOffset = sourceValue[2]
@@ -530,20 +536,20 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
             local axises = {"x", "y", "z"}
             for j = 1, 3 do
               local axis = axises[j]
-              debugTrace("trace", "   Comparing source position at axis " .. tostring(axis) .. " " .. tostring(sourceOffset[axis]) .. " to target position " .. tostring(targetOffset[axis]))
+              debugTrace("trace", "   Comparing source position at axis " .. tostring(axis) .. " '" .. tostring(sourceOffset[axis]) .. "' to target position '" .. tostring(targetOffset[axis]) .. "'")
               if math.abs(sourceOffset[axis] - targetOffset[axis]) > 0.01 then
-                debugTrace("trace", "   Source position at axis " .. tostring(axis) .. " " .. tostring(sourceOffset[axis]) .. " does not match target position " .. tostring(targetOffset[axis]))
+                debugTrace("trace", "   Source position at axis " .. tostring(axis) .. " '" .. tostring(sourceOffset[axis]) .. "' does not match target position '" .. tostring(targetOffset[axis]) .. "'")
                 return false
               end
             end
           else
-            debugTrace("trace", "   Comparing source value " .. tostring(sourceValue) .. " to target value " .. tostring(targetValue))
+            debugTrace("trace", "   Comparing source value: '" .. tostring(sourceValue) .. "' to target value: '" .. tostring(targetValue) .. "'")
             if (paramDef.compare == "asString") then
               sourceValue = tostring(sourceValue)
               targetValue = tostring(targetValue)
             end
             if sourceValue ~= targetValue then
-              debugTrace("trace", "   Source value " .. tostring(sourceValue) .. " does not match target value " .. tostring(targetValue))
+              debugTrace("trace", "   Source value '" .. tostring(sourceValue) .. "' does not match target value '" .. tostring(targetValue) .. "'")
               return false
             end
           end
@@ -605,9 +611,9 @@ function MimicRepeatOrders.cloneOrdersExecute(skipResult)
                           local transporttype = GetWareData(wareId, "transport")
                           local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
                           local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
-                          debugTrace("trace", "   Transport type " .. tostring(transporttype) .. " source cargo capacity " .. tostring(sourceCargoCapacity) .. " vs target cargo capacity " .. tostring(targetCargoCapacity))
+                          debugTrace("trace", "   Transport type: '" .. tostring(transporttype) .. "' source cargo capacity: '" .. tostring(sourceCargoCapacity) .. "' vs target cargo capacity: '" .. tostring(targetCargoCapacity) .. "'")
                           value = (sourceCargoCapacity > 0) and math.floor(orderParam.value / sourceCargoCapacity * targetCargoCapacity) or 0
-                          debugTrace("trace", "   Converted viaCargo value: " .. tostring(value) .. " for ware " .. tostring(wareId))
+                          debugTrace("trace", "   Converted viaCargo value: '" .. tostring(value) .. "' for ware: '" .. tostring(wareId) .. "'")
                         end
                       end
                     elseif orderParamDef.converter == "price" then
@@ -621,7 +627,7 @@ function MimicRepeatOrders.cloneOrdersExecute(skipResult)
                       targetPosition[2][1] = sourcePosition[2].x
                       targetPosition[2][2] = sourcePosition[2].y
                       targetPosition[2][3] = sourcePosition[2].z
-                      debugTrace("trace", string.format("   Preparing position offset: x=%.2f y=%.2f z=%.2f", targetPosition[2][1], targetPosition[2][2], targetPosition[2][3]))
+                      debugTrace("trace", string.format("   Preparing position offset: x=%.2f, y=%.2f, z=%.2f", targetPosition[2][1], targetPosition[2][2], targetPosition[2][3]))
                       value = targetPosition
                     end
                     debugTrace("trace", "   Final value to set: '" .. tostring(value) .. "' at order index " .. tostring(newOrderIdx) .. " param index " .. tostring(orderParamDef.idx))
