@@ -37,6 +37,16 @@ Simple use the usual context menu options to assign a ship to commander with Rep
 
 [Video demonstration of the Mimic Repeat Orders. Version 1.00](https://www.youtube.com/watch?v=6pT75XC8MUs)
 
+## Non-vanilla Orders
+
+### Mining in Sector for Mimic Repeat Orders
+
+Simple mining routine for player owned ships in sector to be managed by Repeat Orders
+
+You can download the latest version via Steam client - [Mining in Sector for Mimic Repeat Orders](https://steamcommunity.com/sharedfiles/filedetails/?id=3602563805).
+
+Or you can do it via the Nexus Mods - [Mining in Sector for Mimic Repeat Orders](https://www.nexusmods.com/x4foundations/mods/1880)
+
 ## Credits
 
 - Author: Chem O`Dun, on [Nexus Mods](https://next.nexusmods.com/profile/ChemODun/mods?gameId=2659) and [Steam Workshop](https://steamcommunity.com/id/chemodun/myworkshopfiles/?appid=392160)
