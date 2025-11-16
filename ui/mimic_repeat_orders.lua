@@ -109,6 +109,15 @@ local MimicRepeatOrders = {
       },
       paramsOrder = {"location", "ware"}
     },
+    CollectDropsInRadius = {
+      enabled = false,
+      name = "",
+      wareIdx = nil,
+      params = {
+        destination = {idx = 1, converter="position"},
+      },
+      paramsOrder = {"destination"}
+    },
   },
   sourceId = 0,
   loopOrdersSkillLimit = 0,
