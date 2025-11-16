@@ -67,6 +67,7 @@ local MimicRepeatOrders = {
   validOrders = {
     SingleBuy            = {
       enabled = false,
+      weight = 1,
       name = "",
       wareIdx = 1,
       params = {
@@ -79,6 +80,7 @@ local MimicRepeatOrders = {
     },
     SingleSell           = {
       enabled = false,
+      weight = 1,
       name = "",
       wareIdx = 1,
       params = {
@@ -91,6 +93,7 @@ local MimicRepeatOrders = {
     },
     MiningPlayer         = {
       enabled = false,
+      weight = 1,
       name = "",
       wareIdx = 3,
       params = {
@@ -101,6 +104,7 @@ local MimicRepeatOrders = {
     },
     MiningPlayerSector   = {
       enabled = false,
+      weight = 1,
       name = "",
       wareIdx = 2,
       params = {
@@ -111,6 +115,7 @@ local MimicRepeatOrders = {
     },
     CollectDropsInRadius = {
       enabled = false,
+      weight = 2,
       name = "",
       wareIdx = nil,
       params = {
@@ -313,7 +318,8 @@ function MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
     else
       if validOrders[orders[i].order] ~= true then
         validOrders[orders[i].order] = true
-        validOrdersCount = validOrdersCount + 1
+        local weight = MimicRepeatOrders.validOrders[orders[i].order].weight or 1
+        validOrdersCount = validOrdersCount + weight
       end
     end
   end
