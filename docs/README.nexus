@@ -8,7 +8,7 @@ The impossible is possible: use the Mimic behavior for Repeat Orders.
 [*] The subordinate ship will copy the [b]Repeat Orders[/b] of its commander.
 [*] Ships with insufficient AI Pilot skill to use [b]Repeat Orders[/b] will be not assigned or removed.
 [*] Any changes to the commander's [b]Repeat Orders[/b] will be automatically reflected on the subordinate ship.
-[*] Works with [b]Sell[/b], [b]Buy[/b] and [b]MiningPlayer[/b] vanilla orders.
+[*] Works with [b]Sell[/b], [b]Buy[/b], [b]MiningPlayer[/b] and [b]CollectDrops[/b] vanilla orders.
 [*] Works with [b]MiningPlayerSector[/b] order from the [b]Mining in Sector for Mimic Repeat Orders[/b] mod.
 [/list]
 [size=3][u][b]Limitations[/b][/u][/size]
@@ -63,6 +63,13 @@ Or you can do it via the Nexus Mods - [url=https://www.nexusmods.com/x4foundatio
 [/list]
 [size=3][u][b]Changelog[/b][/u][/size]
 
+[size=3][u][i][1.11] - 2025-11-16[/i][/u][/size]
+[list]
+[*] Added
+[list]
+[*] Support for [b]CollectDrops[/b] order.
+[/list]
+[/list]
 [size=3][u][i][1.10] - 2025-11-09[/i][/u][/size]
 [list]
 [*] Added
