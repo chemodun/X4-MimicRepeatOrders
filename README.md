@@ -8,8 +8,8 @@ The impossible is possible: use the Mimic behavior for Repeat Orders.
 - The subordinate ship will copy the `Repeat Orders` of its commander.
 - Ships with insufficient AI Pilot skill to use `Repeat Orders` will be not assigned or removed.
 - Any changes to the commander's `Repeat Orders` will be automatically reflected on the subordinate ship.
-- Works with `Sell`, `Buy`, `MiningPlayer` and `CollectDrops` vanilla orders.
-- Works with `MiningPlayerSector` order from the `Mining in Sector for Mimic Repeat Orders` mod.
+- Works with `Sell`, `Buy`, `Mine` and `Collect Drops` vanilla orders.
+- Works with `Mining in Sector` order from the `Mining in Sector for Mimic Repeat Orders` mod.
 
 ## Limitations
 
@@ -63,13 +63,13 @@ Or you can do it via the Nexus Mods - [Mining in Sector for Mimic Repeat Orders]
 ### [1.11] - 2025-11-16
 
 - Added
-  - Support for `CollectDrops` order.
+  - Support for `Collect Drops` order.
 
 ### [1.10] - 2025-11-09
 
 - Added
   - Framework to support additional order types.
-  - Support of `MiningPlayer` and `MiningPlayerSector`.
+  - Support of `Mine` and `Mining in Sector`.
   - Cleanup not supported orders.
 - Fixed
   - Several small bugs.
