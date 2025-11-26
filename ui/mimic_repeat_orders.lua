@@ -123,6 +123,27 @@ local MimicRepeatOrders = {
       },
       paramsOrder = { "destination" }
     },
+    SalvageInRadius = {
+      enabled = false,
+      weight = 1,
+      name = "",
+      wareIdx = nil,
+      params = {
+        destination = { idx = 1, converter = "position" },
+        radius = { idx = 3 },
+      },
+      paramsOrder = { "destination", "radius" }
+    },
+    SalvageDeliver_NoTrade = {
+      enabled = false,
+      weight = 1,
+      name = "",
+      wareIdx = nil,
+      params = {
+        destination = { idx = 1, compare = "asObjectId" },
+      },
+      paramsOrder = { "destination" }
+    },
   },
   sourceId = 0,
   loopOrdersSkillLimit = 0,
@@ -590,6 +611,9 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
             if (paramDef.compare == "asString") then
               sourceValue = tostring(sourceValue)
               targetValue = tostring(targetValue)
+            elseif (paramDef.compare == "asObjectId") then
+              sourceValue = ConvertStringTo64Bit(tostring(sourceValue))
+              targetValue = ConvertStringTo64Bit(tostring(targetValue))
             end
             if sourceValue ~= targetValue then
               debugTrace("trace", "   Source value '" .. tostring(sourceValue) .. "' does not match target value '" .. tostring(targetValue) .. "'")
