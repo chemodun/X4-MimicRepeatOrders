@@ -8,7 +8,7 @@ The impossible is possible: use the Mimic behavior for Repeat Orders.
 - The subordinate ship will copy the `Repeat Orders` of its commander.
 - Ships with insufficient AI Pilot skill to use `Repeat Orders` will be not assigned or removed.
 - Any changes to the commander's `Repeat Orders` will be automatically reflected on the subordinate ship.
-- Works with `Sell`, `Buy`, `Mine`, `Collect Drops`, `Salvage at Position` and `Deliver Salvage` vanilla orders.
+- Works with `Sell`, `Buy`, `Mine`, `Collect Drops`, `Deposit Inventory`, `Salvage at Position` and `Deliver Salvage` vanilla orders.
 - Works with `Mining in Sector` order from the `Mining in Sector for Mimic Repeat Orders` mod.
 
 ## Limitations
@@ -19,8 +19,8 @@ The impossible is possible: use the Mimic behavior for Repeat Orders.
 
 ## Specifics
 
-- Orders `Sell`, `Buy`, `Mine`, `Mining in Sector`, `Salvage at Position` and `Deliver Salvage` will not be processed if they are only one type of orders under control of `Repeat Orders`. I.e. if the commander has only `Sell` orders, the subordinate ship will not mimic them. But if both `Sell` and `Buy` orders are present, both will be mimicked. `Mine` and `Mining in Sector` are best combined with `Sell`. `Salvage at Position` is best combined with `Deliver Salvage`.
-- Only `Collect Drops` order is supported alone, as it does not require any other order to be effective.
+- Orders `Sell`, `Buy`, `Mine`, `Mining in Sector`, `Deposit Inventory`, `Salvage at Position` and `Deliver Salvage` will not be processed if they are only one type of orders under control of `Repeat Orders`. I.e. if the commander has only `Sell` orders, the subordinate ship will not mimic them. But if both `Sell` and `Buy` orders are present, both will be mimicked. `Mine` and `Mining in Sector` are best combined with `Sell`. `Salvage at Position` is best combined with `Deliver Salvage`.
+- Only `Collect Drops` order is supported alone, as `Deposit Inventory` is not mandatory pair.
 
 ## Requirements
 
@@ -64,6 +64,11 @@ Or you can do it via the Nexus Mods - [Mining in Sector for Mimic Repeat Orders]
 - [Forleyor](https://next.nexusmods.com/profile/Forleyor?gameId=2659) — for his constant help with understanding the UI modding!
 
 ## Changelog
+
+### [1.13] - 2025-12-08
+
+- Added
+  - Support for `Deposit Inventory` order.
 
 ### [1.12] - 2025-11-26
 

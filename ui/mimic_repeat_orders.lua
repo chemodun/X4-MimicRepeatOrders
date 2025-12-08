@@ -123,6 +123,16 @@ local MimicRepeatOrders = {
       },
       paramsOrder = { "destination" }
     },
+    DepositInventory = {
+      enabled = false,
+      weight = 1,
+      name = "",
+      wareIdx = nil,
+      params = {
+        destination = { idx = 1, compare = "asObjectId" },
+      },
+      paramsOrder = { "destination" }
+    },
     SalvageInRadius = {
       enabled = false,
       weight = 1,
