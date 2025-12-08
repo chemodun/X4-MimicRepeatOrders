@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon name="mimic_repeat_orders" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../core/coreaddon.xsd">
   <environment type="menus">
-    <dependency name="sn_mod_support_apis" />
     <dependency name="ego_detailmonitor" />
+    <dependency name="sn_mod_support_apis" />
     <file name="ui/mimic_repeat_orders.lua" />
   </environment>
 </addon>
