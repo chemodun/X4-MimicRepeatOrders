@@ -8,7 +8,7 @@ The impossible is possible: use the Mimic behavior for Repeat Orders.
 [*] The subordinate ship will copy the [b]Repeat Orders[/b] of its commander.
 [*] Ships with insufficient AI Pilot skill to use [b]Repeat Orders[/b] will be not assigned or removed.
 [*] Any changes to the commander's [b]Repeat Orders[/b] will be automatically reflected on the subordinate ship.
-[*] Works with [b]Sell[/b], [b]Buy[/b], [b]Mine[/b], [b]Collect Drops[/b], [b]Salvage at Position[/b] and [b]Deliver Salvage[/b] vanilla orders.
+[*] Works with [b]Sell[/b], [b]Buy[/b], [b]Mine[/b], [b]Collect Drops[/b], [b]Deposit Inventory[/b], [b]Salvage at Position[/b] and [b]Deliver Salvage[/b] vanilla orders.
 [*] Works with [b]Mining in Sector[/b] order from the [b]Mining in Sector for Mimic Repeat Orders[/b] mod.
 [/list]
 [size=3][u][b]Limitations[/b][/u][/size]
@@ -19,8 +19,8 @@ The impossible is possible: use the Mimic behavior for Repeat Orders.
 [/list]
 [size=3][u][b]Specifics[/b][/u][/size]
 [list]
-[*] Orders [b]Sell[/b], [b]Buy[/b], [b]Mine[/b], [b]Mining in Sector[/b], [b]Salvage at Position[/b] and [b]Deliver Salvage[/b] will not be processed if they are only one type of orders under control of [b]Repeat Orders[/b]. I.e. if the commander has only [b]Sell[/b] orders, the subordinate ship will not mimic them. But if both [b]Sell[/b] and [b]Buy[/b] orders are present, both will be mimicked. [b]Mine[/b] and [b]Mining in Sector[/b] are best combined with [b]Sell[/b]. [b]Salvage at Position[/b] is best combined with [b]Deliver Salvage[/b].
-[*] Only [b]Collect Drops[/b] order is supported alone, as it does not require any other order to be effective.
+[*] Orders [b]Sell[/b], [b]Buy[/b], [b]Mine[/b], [b]Mining in Sector[/b], [b]Deposit Inventory[/b], [b]Salvage at Position[/b] and [b]Deliver Salvage[/b] will not be processed if they are only one type of orders under control of [b]Repeat Orders[/b]. I.e. if the commander has only [b]Sell[/b] orders, the subordinate ship will not mimic them. But if both [b]Sell[/b] and [b]Buy[/b] orders are present, both will be mimicked. [b]Mine[/b] and [b]Mining in Sector[/b] are best combined with [b]Sell[/b]. [b]Salvage at Position[/b] is best combined with [b]Deliver Salvage[/b].
+[*] Only [b]Collect Drops[/b] order is supported alone, as [b]Deposit Inventory[/b] is not mandatory pair.
 [/list]
 [size=3][u][b]Requirements[/b][/u][/size]
 [list]
@@ -68,6 +68,13 @@ Or you can do it via the Nexus Mods - [url=https://www.nexusmods.com/x4foundatio
 [/list]
 [size=3][u][b]Changelog[/b][/u][/size]
 
+[size=3][u][i][1.13] - 2025-12-08[/i][/u][/size]
+[list]
+[*] Added
+[list]
+[*] Support for [b]Deposit Inventory[/b] order.
+[/list]
+[/list]
 [size=3][u][i][1.12] - 2025-11-26[/i][/u][/size]
 [list]
 [*] Added
