@@ -160,7 +160,7 @@ local MimicRepeatOrders = {
       name = "",
       wareIdx = nil,
       params = {
-        destination = { idx = 2, compare = "asString" },
+        destination = { idx = 2, converter = "position" },
         radius = { idx = 3 },
       },
       paramsOrder = { "destination", "radius" }
