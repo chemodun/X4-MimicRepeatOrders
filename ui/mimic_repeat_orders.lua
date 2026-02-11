@@ -154,6 +154,17 @@ local MimicRepeatOrders = {
       },
       paramsOrder = { "destination" }
     },
+    ExploreUpdate = {
+      enabled = false,
+      weight = 2,
+      name = "",
+      wareIdx = nil,
+      params = {
+        destination = { idx = 2, compare = "asString" },
+        radius = { idx = 3 },
+      },
+      paramsOrder = { "destination", "radius" }
+    },
   },
   sourceId = 0,
   loopOrdersSkillLimit = 0,
