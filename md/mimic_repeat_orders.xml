@@ -51,6 +51,20 @@
           </actions>
         </cue>
 
+        <cue name="On_Event_Object_Order_Ready" instantiate="true">
+          <conditions>
+            <check_any>
+              <event_object_order_ready group="@$repeatOrdersCommanders" check="false" />
+              <event_object_order_param_edited group="@$repeatOrdersCommanders" check="false" />
+              <event_object_order_cancelled group="@$repeatOrdersCommanders" check="false" />
+              <event_object_order_finished group="@$repeatOrdersCommanders" check="false" />
+            </check_any>
+          </conditions>
+          <actions>
+            <debug_text text="'MimicRepeatOrders: On_Event_Object_Order_Ready: event %s commander %s. Param: %s, id: %s. Param2: %s. Param3: %s'.[@event.name, @event.object.debugname, @event.param, @event.param.id, @event.param2, @event.param3]" chance="100" filter="scripts" />
+          </actions>
+        </cue>
+
         <cue name="Repeat_Orders_Commanders_Subordinate_Removed" instantiate="true">
           <conditions>
             <event_object_subordinate_removed group="@$repeatOrdersCommanders" check="false" />
