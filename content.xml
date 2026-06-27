@@ -6,7 +6,9 @@
   version="200"
   date="2026-06-27"
   save="false"
-  lastupdate="1770825053"
+  sync="false"
+  enabled="true"
+  lastupdate="1782591730"
   description="The impossible is possible: use the Mimic behavior for Repeat Orders.">
   <text language="7" description="The impossible is possible: use the Mimic behavior for Repeat Orders."></text>
   <!-- French -->
