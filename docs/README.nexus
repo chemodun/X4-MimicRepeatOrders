@@ -76,14 +76,14 @@ Or you can do it via the Nexus Mods - [url=https://www.nexusmods.com/x4foundatio
 
 [size=3][u][i][2.00] - 2026-06-27[/i][/u][/size]
 [list]
-[*] Added
-[list]
-[*] In-game [b]Debug Level[/b] option ([b]None[/b] / [b]Debug[/b] / [b]Trace[/b]) under Extension Options, replacing the previous always-on debug output. Requires the new [b]Options Helper[/b] dependency.
-[/list]
 [*] Changed
 [list]
 [*] Repeat orders are no longer limited to a fixed list of supported order types — any order placed in the [b]Repeat Orders[/b] loop is now mimicked, including every one of its parameters, detected directly from the game engine instead of a hand-maintained list.
 [*] A single [b]Repeat Orders[/b] entry is now enough to enable mimicking; the previous "needs at least two combined orders" rule has been removed.
+[/list]
+[*] Added
+[list]
+[*] In-game [b]Debug Level[/b] option ([b]None[/b] / [b]Debug[/b] / [b]Trace[/b]) under Extension Options, replacing the previous always-on debug output. Requires the new [b]Options Helper[/b] dependency.
 [/list]
 [/list]
 [size=3][u][i][1.14] - 2026-02-11[/i][/u][/size]
