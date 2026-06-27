@@ -63,45 +63,6 @@
           </actions>
         </cue>
 
-        <cue name="On_Event_Object_Order" instantiate="true">
-          <conditions>
-            <check_any>
-              <event_object_order_ready group="@$repeatOrdersCommanders" check="false" />
-              <event_object_order_param_edited group="@$repeatOrdersCommanders" check="false" />
-              <event_object_order_cancelled group="@$repeatOrdersCommanders" check="false" />
-              <event_object_order_finished group="@$repeatOrdersCommanders" check="false" />
-            </check_any>
-          </conditions>
-          <actions>
-            <include_actions ref="MRO_ReadDebugChances" />
-            <debug_text text="'MimicRepeatOrders: On_Event_Object_Order: event %s commander %s. Param: %s, id: %s. Param2: %s. Param3: %s'.[@event.name, @event.object.debugname, @event.param, @event.param.id, @event.param2, @event.param3]" chance="$traceChance" filter="scripts" />
-            <set_value name="$order" exact="@event.param" />
-            <do_if value="$order? and @$order.id != null">
-              <do_if value="@$order.id == 'SingleSell'">
-                <debug_text text="'MimicRepeatOrders: Orders: SingleSell order detected'" chance="$traceChance" filter="scripts" />
-                <debug_text text="'MimicRepeatOrders: Orders: `ware` value: %s'.[@$order.$ware]" chance="$traceChance" filter="scripts" />
-                <debug_text text="'MimicRepeatOrders: Orders: `locations` value: %s'.[@$order.$locations]" chance="$traceChance" filter="scripts" />
-                <debug_text text="'MimicRepeatOrders: Orders: `maxamount` value: %s'.[@$order.$maxamount]" chance="$traceChance" filter="scripts" />
-                <debug_text text="'MimicRepeatOrders: Orders: `pricethreshold` value: %s'.[@$order.$pricethreshold]" chance="$traceChance" filter="scripts" />
-              </do_if>
-              <do_if value="@$order.id == 'CollectDropsInRadius'">
-                <debug_text text="'MimicRepeatOrders: Orders: CollectDropsInRadius order detected'" chance="$traceChance" filter="scripts" />
-                <debug_text text="'MimicRepeatOrders: Orders: `destination` value: %s'.[@$order.$destination]" chance="$traceChance" filter="scripts" />
-              </do_if>
-            </do_if>
-            <remove_value name="$debugChance" />
-            <remove_value name="$traceChance" />
-          </actions>
-        </cue>
-
-        <cue name="Set_Order_Param" instantiate="true">
-          <conditions>
-            <event_ui_triggered screen="'MapMenu'" />
-          </conditions>
-          <actions>
-          </actions>
-        </cue>
-
         <cue name="Repeat_Orders_Commanders_Subordinate_Removed" instantiate="true">
           <conditions>
             <event_object_subordinate_removed group="@$repeatOrdersCommanders" check="false" />
