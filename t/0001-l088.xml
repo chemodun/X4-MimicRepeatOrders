@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mimic Repeat Orders — Chinese Traditional text, page 1972092434 -->
+<diff>
+  <add sel="/language">
+    <page id="1972092434" title="Mimic Repeat Orders" descr="" voice="no">
+      <!-- mod identity -->
+      <t id="1">模仿並重複命令</t>
+
+      <!-- Section: Debug (90200) -->
+      <t id="90200">調試</t>
+      <t id="90210">調試級別</t>
+      <t id="90211">無</t>
+      <t id="90212">調試</t>
+      <t id="90213">追蹤</t>
+    </page>
+  </add>
+</diff>

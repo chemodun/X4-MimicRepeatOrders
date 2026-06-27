@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mimic Repeat Orders — Ukrainian text, page 1972092434 -->
+<diff>
+  <add sel="/language">
+    <page id="1972092434" title="Mimic Repeat Orders" descr="" voice="no">
+      <!-- mod identity -->
+      <t id="1">Імітувати та повторювати накази</t>
+
+      <!-- Section: Debug (90200) -->
+      <t id="90200">Налагодження</t>
+      <t id="90210">Рівень налагодження</t>
+      <t id="90211">Відсутній</t>
+      <t id="90212">Налагодження</t>
+      <t id="90213">Трасування</t>
+    </page>
+  </add>
+</diff>

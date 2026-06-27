@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mimic Repeat Orders — Korean text, page 1972092434 -->
+<diff>
+  <add sel="/language">
+    <page id="1972092434" title="Mimic Repeat Orders" descr="" voice="no">
+      <!-- mod identity -->
+      <t id="1">명령 모방 및 반복</t>
+
+      <!-- Section: Debug (90200) -->
+      <t id="90200">디버그</t>
+      <t id="90210">디버그 수준</t>
+      <t id="90211">없음</t>
+      <t id="90212">디버그</t>
+      <t id="90213">추적</t>
+    </page>
+  </add>
+</diff>

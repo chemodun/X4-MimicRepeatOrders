@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mimic Repeat Orders — Spanish text, page 1972092434 -->
+<diff>
+  <add sel="/language">
+    <page id="1972092434" title="Mimic Repeat Orders" descr="" voice="no">
+      <!-- mod identity -->
+      <t id="1">Imitar y repetir órdenes</t>
+
+      <!-- Section: Debug (90200) -->
+      <t id="90200">Depuración</t>
+      <t id="90210">Nivel de depuración</t>
+      <t id="90211">Ninguno</t>
+      <t id="90212">Depuración</t>
+      <t id="90213">Rastreo</t>
+    </page>
+  </add>
+</diff>
