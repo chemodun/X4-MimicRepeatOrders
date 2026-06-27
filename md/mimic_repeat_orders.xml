@@ -12,11 +12,14 @@
         <set_value name="$refreshIteration" exact="1" />
       </patch>
       <actions>
-        <debug_text text="'MimicRepeatOrders: Main'" chance="100" filter="scripts" />
+        <include_actions ref="MRO_ReadDebugChances" />
+        <debug_text text="'MimicRepeatOrders: Main'" chance="$debugChance" filter="scripts" />
         <do_if value="@$repeatOrdersCommanders == null">
           <create_group groupname="$repeatOrdersCommanders" />
         </do_if>
         <set_value name="$refreshIteration" exact="1" />
+        <remove_value name="$debugChance" />
+        <remove_value name="$traceChance" />
       </actions>
       <cues>
         <cue name="On_Reload" instantiate="true">
@@ -24,8 +27,11 @@
             <event_ui_triggered screen="'MimicRepeatOrders'" control="'Reloaded'" />
           </conditions>
           <actions>
-            <debug_text text="'MimicRepeatOrders: On_Reload'" chance="100" filter="scripts" />
+            <include_actions ref="MRO_ReadDebugChances" />
+            <debug_text text="'MimicRepeatOrders: On_Reload'" chance="$debugChance" filter="scripts" />
             <signal_cue_instantly cue="Reloaded" />
+            <remove_value name="$debugChance" />
+            <remove_value name="$traceChance" />
           </actions>
         </cue>
 
@@ -34,24 +40,30 @@
             <event_cue_signalled />
           </conditions>
           <actions>
-            <debug_text text="'MimicRepeatOrders: Reloaded. Loop Orders Skill Limit: %s'.[@player.entity.$MimicRepeatOrdersLoopOrdersSkillLimit]" chance="100"
+            <include_actions ref="MRO_ReadDebugChances" />
+            <debug_text text="'MimicRepeatOrders: Reloaded. Loop Orders Skill Limit: %s'.[@player.entity.$MimicRepeatOrdersLoopOrdersSkillLimit]" chance="$debugChance"
               filter="general" />
             <do_if value="@$repeatOrdersCommanders == null">
               <create_group groupname="$repeatOrdersCommanders" />
             </do_if>
             <set_value name="$refreshIteration" exact="10" />
             <include_actions ref="Repeat_Orders_Commanders_Refresh" />
+            <remove_value name="$debugChance" />
+            <remove_value name="$traceChance" />
           </actions>
         </cue>
 
         <cue name="Refresh_Repeat_Orders_Commanders" instantiate="true" checkinterval="3s">
           <actions>
-            <debug_text text="'MimicRepeatOrders: Refresh_Repeat_Orders_Commanders. Iteration %s'.[@$refreshIteration]" chance="100" filter="scripts" />
+            <include_actions ref="MRO_ReadDebugChances" />
+            <debug_text text="'MimicRepeatOrders: Refresh_Repeat_Orders_Commanders. Iteration %s'.[@$refreshIteration]" chance="$traceChance" filter="scripts" />
             <include_actions ref="Repeat_Orders_Commanders_Refresh" />
+            <remove_value name="$debugChance" />
+            <remove_value name="$traceChance" />
           </actions>
         </cue>
 
-        <cue name="On_Event_Object_Order_Ready" instantiate="true">
+        <cue name="On_Event_Object_Order" instantiate="true">
           <conditions>
             <check_any>
               <event_object_order_ready group="@$repeatOrdersCommanders" check="false" />
@@ -61,7 +73,32 @@
             </check_any>
           </conditions>
           <actions>
-            <debug_text text="'MimicRepeatOrders: On_Event_Object_Order_Ready: event %s commander %s. Param: %s, id: %s. Param2: %s. Param3: %s'.[@event.name, @event.object.debugname, @event.param, @event.param.id, @event.param2, @event.param3]" chance="100" filter="scripts" />
+            <include_actions ref="MRO_ReadDebugChances" />
+            <debug_text text="'MimicRepeatOrders: On_Event_Object_Order: event %s commander %s. Param: %s, id: %s. Param2: %s. Param3: %s'.[@event.name, @event.object.debugname, @event.param, @event.param.id, @event.param2, @event.param3]" chance="$traceChance" filter="scripts" />
+            <set_value name="$order" exact="@event.param" />
+            <do_if value="$order? and @$order.id != null">
+              <do_if value="@$order.id == 'SingleSell'">
+                <debug_text text="'MimicRepeatOrders: Orders: SingleSell order detected'" chance="$traceChance" filter="scripts" />
+                <debug_text text="'MimicRepeatOrders: Orders: `ware` value: %s'.[@$order.$ware]" chance="$traceChance" filter="scripts" />
+                <debug_text text="'MimicRepeatOrders: Orders: `locations` value: %s'.[@$order.$locations]" chance="$traceChance" filter="scripts" />
+                <debug_text text="'MimicRepeatOrders: Orders: `maxamount` value: %s'.[@$order.$maxamount]" chance="$traceChance" filter="scripts" />
+                <debug_text text="'MimicRepeatOrders: Orders: `pricethreshold` value: %s'.[@$order.$pricethreshold]" chance="$traceChance" filter="scripts" />
+              </do_if>
+              <do_if value="@$order.id == 'CollectDropsInRadius'">
+                <debug_text text="'MimicRepeatOrders: Orders: CollectDropsInRadius order detected'" chance="$traceChance" filter="scripts" />
+                <debug_text text="'MimicRepeatOrders: Orders: `destination` value: %s'.[@$order.$destination]" chance="$traceChance" filter="scripts" />
+              </do_if>
+            </do_if>
+            <remove_value name="$debugChance" />
+            <remove_value name="$traceChance" />
+          </actions>
+        </cue>
+
+        <cue name="Set_Order_Param" instantiate="true">
+          <conditions>
+            <event_ui_triggered screen="'MapMenu'" />
+          </conditions>
+          <actions>
           </actions>
         </cue>
 
@@ -71,9 +108,10 @@
             <check_value value="@event.param.hasorderloop" />
           </conditions>
           <actions>
+            <include_actions ref="MRO_ReadDebugChances" />
             <debug_text
               text="'MimicRepeatOrders: Repeat_Orders_Commanders_Subordinate_Removed: subordinate %s was removed from commander %s, with mimic subordinates %s'.[@event.param.debugname, @event.object.debugname, @event.object.subordinates.{assignment.assist}.count]"
-              chance="100"
+              chance="$debugChance"
               filter="scripts" />
             <do_if value="@event.object.subordinates.{assignment.assist}.count le 0">
               <remove_from_group group="$repeatOrdersCommanders" object="@event.object" />
@@ -86,6 +124,8 @@
                 $targets            = $targetList,
               ]" />
             <include_actions ref="Send_Request" />
+            <remove_value name="$debugChance" />
+            <remove_value name="$traceChance" />
           </actions>
         </cue>
 
@@ -103,6 +143,7 @@
             <check_value value="@event.param3.iswreck" negate="true" />
           </conditions>
           <actions>
+            <include_actions ref="MRO_ReadDebugChances" />
             <create_list name="$targetList" />
             <append_to_list name="$targetList" exact="@event.param3" />
             <set_value name="$args"
@@ -115,13 +156,17 @@
               <add_to_group groupname="$repeatOrdersCommanders" object="@event.param2" />
             </do_if>
             <include_actions ref="Send_Request" />
+            <remove_value name="$debugChance" />
+            <remove_value name="$traceChance" />
           </actions>
         </cue>
 
         <cue name="Add_Order_To_Queue" instantiate="true">
           <conditions>
             <event_object_signalled object="player.entity" param="'mimic_repeat_orders_add_order_to_queue'" />
-            <debug_text text="'MimicRepeatOrders: Add_Order_To_Queue invoked with param: %s'.[@event.param2]" chance="100" filter="scripts" />
+            <debug_text text="'MimicRepeatOrders: Add_Order_To_Queue invoked with param: %s'.[@event.param2]"
+              chance="if @player.entity.$MimicRepeatOrdersConfig.$debugLevel != null and @player.entity.$MimicRepeatOrdersConfig.$debugLevel != 'none' then 100 else 0"
+              filter="scripts" />
             <check_value value="@event.param2 != null" />
             <check_value value="typeof event.param2 == datatype.table" />
             <check_value value="@event.param2.$ship != null" />
@@ -136,9 +181,10 @@
             <check_value value="typeof event.param2.$params == datatype.table" />
           </conditions>
           <actions>
+            <include_actions ref="MRO_ReadDebugChances" />
             <debug_text
               text="'MimicRepeatOrders: Add_Order_To_Queue invoked on target %s with order: %s and params: %s'.[@event.param2, @event.param2.$order, @event.param2.$params, typeof @event.param2.$params]"
-              chance="100" filter="scripts" />
+              chance="$traceChance" filter="scripts" />
             <set_value name="$args"
               exact="table[
                 $command            = 'add_order_to_queue',
@@ -147,6 +193,8 @@
                 $params             = @event.param2.$params.clone,
               ]" />
             <include_actions ref="Send_Request" />
+            <remove_value name="$debugChance" />
+            <remove_value name="$traceChance" />
           </actions>
         </cue>
 
@@ -155,28 +203,31 @@
             <event_ui_triggered screen="'MimicRepeatOrders'" control="'Response'" />
           </conditions>
           <actions>
+            <include_actions ref="MRO_ReadDebugChances" />
             <debug_text
               text="'MimicRepeatOrders: Capture_Results invoked with data in $MimicRepeatOrdersResponse: %s'.[@player.entity.$MimicRepeatOrdersResponse]"
-              chance="100" filter="scripts" />
+              chance="$traceChance" filter="scripts" />
             <!--Look
             up the action by id to get the callback.-->
             <set_value name="$result" exact="@player.entity.$MimicRepeatOrdersResponse" />
-            <debug_text text="'MimicRepeatOrders: Process_Results invoked with result: %s'.[$result]" chance="100" filter="scripts" />
+            <debug_text text="'MimicRepeatOrders: Process_Results invoked with result: %s'.[$result]" chance="$traceChance" filter="scripts" />
             <do_if value="$result? and @$result != null">
-              <debug_text text="'MimicRepeatOrders: last command %s result: %s'.[@$result.$command, $result]" chance="100" filter="scripts" />
+              <debug_text text="'MimicRepeatOrders: last command %s result: %s'.[@$result.$command, $result]" chance="$debugChance" filter="scripts" />
               <do_if value="@$result.$command == 'refresh_commanders'">
                 <set_value name="$listCommanders" exact="$result.$list" />
                 <do_for_each name="$commander" in="@$repeatOrdersCommanders.list">
                   <do_if value="$listCommanders.indexof.{@$commander} le 0">
                     <debug_text
                       text="'MimicRepeatOrders: Process_Results removing commander %s as it is no longer valid or has no mimic subordinates'.[@$commander.debugname]"
-                      chance="100" filter="scripts" />
+                      chance="$debugChance" filter="scripts" />
                     <remove_from_group group="$repeatOrdersCommanders" object="@$commander" />
                   </do_if>
                 </do_for_each>
                 <remove_value name="$listCommanders" />
               </do_if>
             </do_if>
+            <remove_value name="$debugChance" />
+            <remove_value name="$traceChance" />
           </actions>
         </cue>
 
@@ -188,7 +239,7 @@
               </do_if>
               <append_to_list name="player.entity.$MimicRepeatOrdersRequest" exact="$args" />
               <debug_text
-                text="'MimicRepeatOrders: Send_Request, command: %s, args: %s'.[$args.$command, $args]" chance="100" filter="scripts" />
+                text="'MimicRepeatOrders: Send_Request, command: %s, args: %s'.[$args.$command, $args]" chance="$traceChance" filter="scripts" />
               <raise_lua_event name="'MimicRepeatOrders.Request'" />
             </do_if>
           </actions>
@@ -198,7 +249,7 @@
           <actions>
             <debug_text
               text="'MimicRepeatOrders: Repeat_Orders_Commanders_Refresh, count: %s, iteration: %s'.[@$repeatOrdersCommanders.count, $refreshIteration]"
-              chance="100" filter="scripts" />
+              chance="$traceChance" filter="scripts" />
             <do_if value="@$repeatOrdersCommanders == null">
               <create_group groupname="$repeatOrdersCommanders" />
             </do_if>
@@ -219,6 +270,122 @@
             </do_if>
           </actions>
         </library>
+
+        <!-- *** Logging configuration ***
+             $debugChance (100 unless debugLevel == 'none') and $traceChance (100 only when
+             debugLevel == 'trace') from player.entity.$MimicRepeatOrdersConfig.$debugLevel.
+             Caller must remove_value both when done. -->
+        <library name="MRO_ReadDebugChances" purpose="include_actions">
+          <actions>
+            <set_value name="$mroDebugLevel" exact="if @player.entity.$MimicRepeatOrdersConfig.$debugLevel != null
+              then player.entity.$MimicRepeatOrdersConfig.$debugLevel else 'none'" />
+            <set_value name="$debugChance" exact="if @$mroDebugLevel == null or @$mroDebugLevel == 'none' then 0 else 100" />
+            <set_value name="$traceChance" exact="if @$mroDebugLevel == 'trace' then 100 else 0" />
+            <remove_value name="$mroDebugLevel" />
+          </actions>
+        </library>
+
+        <!-- Default config values -->
+        <library name="MRO_Defaults" purpose="include_actions">
+          <actions>
+            <set_value name="$cfg" exact="table[
+              $debugLevel = 'none',
+            ]" />
+          </actions>
+        </library>
+
+        <!-- *** Options menu registration *** -->
+        <cue name="MRO_Register_Menu" instantiate="true" version="1">
+          <conditions>
+            <event_cue_signalled cue="md.Simple_Menu_API.Reloaded" />
+          </conditions>
+          <actions>
+            <include_actions ref="MRO_Defaults" />
+            <do_if value="@player.entity.$MimicRepeatOrdersConfig == null">
+              <set_value name="player.entity.$MimicRepeatOrdersConfig" exact="$cfg" />
+            </do_if>
+            <do_else>
+              <do_for_each name="$k" in="$cfg">
+                <do_if value="@player.entity.$MimicRepeatOrdersConfig.{$k} == null">
+                  <set_value name="player.entity.$MimicRepeatOrdersConfig.{$k}" exact="$cfg.{$k}" />
+                </do_if>
+              </do_for_each>
+            </do_else>
+            <remove_value name="$cfg" />
+
+            <signal_cue_instantly cue="md.Simple_Menu_API.Register_Options_Menu"
+              param="table[
+                $id      = 'mimic_repeat_orders_options_menu',
+                $columns = 12,
+                $title   = {1972092434, 1},
+                $onOpen  = MRO_Options_Menu,
+              ]" />
+          </actions>
+        </cue>
+
+        <!-- *** Options menu open callback *** -->
+        <cue name="MRO_Options_Menu" instantiate="true" version="1">
+          <conditions>
+            <event_cue_signalled />
+          </conditions>
+          <actions>
+            <do_if value="@player.entity.$MimicRepeatOrdersConfig != null">
+              <set_value name="$cfg" exact="player.entity.$MimicRepeatOrdersConfig" />
+
+              <run_actions ref="md.Options_Helper.Add_Title_Row">
+                <param name="title" value="{1972092434, 1}" />
+              </run_actions>
+
+              <include_actions ref="md.Options_Helper.Add_Empty_Row" />
+              <run_actions ref="md.Options_Helper.Add_Title_Row">
+                <param name="title" value="{1972092434, 90200}" />
+              </run_actions>
+
+              <set_value name="$debugLevelOptions" exact="[
+                table[$text = {1972092434, 90211}, $value = 'none'],
+                table[$text = {1972092434, 90212}, $value = 'debug'],
+                table[$text = {1972092434, 90213}, $value = 'trace']
+              ]" />
+              <set_value name="$debugLevelIndexes" exact="['none', 'debug', 'trace']" />
+              <set_value name="$debugLevelCurrentIndex" exact="$debugLevelIndexes.indexof.{@$cfg.$debugLevel}" />
+              <do_if value="$debugLevelCurrentIndex == 0">
+                <set_value name="$debugLevelCurrentIndex" exact="1" />
+              </do_if>
+
+              <run_actions ref="md.Options_Helper.Add_Dropdown">
+                <param name="id" value="'debugLevel'" />
+                <param name="options" value="$debugLevelOptions" />
+                <param name="currentIndex" value="$debugLevelCurrentIndex" />
+                <param name="col" value="1" />
+                <param name="textColSpan" value="6" />
+                <param name="text" value="{1972092434, 90210}" />
+                <param name="dropdownColSpan" value="6" />
+                <param name="handle" value="MRO_HandleDropdown" />
+              </run_actions>
+
+              <remove_value name="$debugLevelOptions" />
+              <remove_value name="$debugLevelIndexes" />
+              <remove_value name="$debugLevelCurrentIndex" />
+              <remove_value name="$cfg" />
+            </do_if>
+          </actions>
+        </cue>
+
+        <!-- *** Dropdown handler *** -->
+        <cue name="MRO_HandleDropdown" instantiate="true" version="1">
+          <conditions>
+            <event_cue_signalled />
+          </conditions>
+          <actions>
+            <set_value name="$resultTable" exact="player.entity.$MimicRepeatOrdersConfig" />
+            <include_actions ref="md.Options_Helper.Process_Dropdown_Changed" />
+            <remove_value name="$resultTable" />
+            <do_if value="event.param.$echo.$valueId == '$debugLevel'">
+              <raise_lua_event name="'MimicRepeatOrders.DebugLevelChanged'"
+                param="player.entity.$MimicRepeatOrdersConfig.$debugLevel" />
+            </do_if>
+          </actions>
+        </cue>
 
       </cues>
     </cue>
