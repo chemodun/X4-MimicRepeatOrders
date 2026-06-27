@@ -71,11 +71,11 @@ Or you can do it via the Nexus Mods - [Mining in Sector for Mimic Repeat Orders]
 
 ### [2.00] - 2026-06-27
 
-- Added
-  - In-game `Debug Level` option (`None` / `Debug` / `Trace`) under Extension Options, replacing the previous always-on debug output. Requires the new `Options Helper` dependency.
 - Changed
   - Repeat orders are no longer limited to a fixed list of supported order types — any order placed in the `Repeat Orders` loop is now mimicked, including every one of its parameters, detected directly from the game engine instead of a hand-maintained list.
   - A single `Repeat Orders` entry is now enough to enable mimicking; the previous "needs at least two combined orders" rule has been removed.
+- Added
+  - In-game `Debug Level` option (`None` / `Debug` / `Trace`) under Extension Options, replacing the previous always-on debug output. Requires the new `Options Helper` dependency.
 
 ### [1.14] - 2026-02-11
 
