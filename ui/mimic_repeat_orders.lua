@@ -64,20 +64,6 @@ local MimicRepeatOrders = {
   queueArgs = {},
   playerId = 0,
   mapMenu = {},
-  -- Per-order policy only -- which order ids are safe to mimic at all (enabled/weight).
-  -- Param comparison/cloning is fully generic (driven by GetOrderParams' own type metadata),
-  -- so no per-order param/converter/wareIdx bookkeeping is needed here anymore.
-  validOrders = {
-    SingleBuy              = { enabled = false, weight = 1, name = "" },
-    SingleSell             = { enabled = false, weight = 1, name = "" },
-    MiningPlayer           = { enabled = false, weight = 1, name = "" },
-    MiningPlayerSector     = { enabled = false, weight = 1, name = "" },
-    CollectDropsInRadius   = { enabled = false, weight = 2, name = "" },
-    DepositInventory       = { enabled = false, weight = 1, name = "" },
-    SalvageInRadius        = { enabled = false, weight = 1, name = "" },
-    SalvageDeliver_NoTrade = { enabled = false, weight = 1, name = "" },
-    ExploreUpdate          = { enabled = false, weight = 2, name = "" },
-  },
   sourceId = 0,
   loopOrdersSkillLimit = 0,
   targetIds = {},
@@ -264,7 +250,7 @@ function MimicRepeatOrders.getCargoCapacity(shipId, transportType)
   return capacity
 end
 
-function MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
+function MimicRepeatOrders.ValidateSourceShip()
   local sourceId = MimicRepeatOrders.sourceId
   if MimicRepeatOrders.args ~= nil and MimicRepeatOrders.args.source ~= nil then
     sourceId = toUniverseId(MimicRepeatOrders.args.source)
@@ -280,33 +266,7 @@ function MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
   if #orders == 0 then
     return false, { info = "NoRepeatOrders" }
   end
-  local ordersToRemove = {}
-  local validOrders = {}
-  local validOrdersCount = 0
-  for i = 1, #orders do
-    if MimicRepeatOrders.validOrders[orders[i].order] == nil or MimicRepeatOrders.validOrders[orders[i].order].enabled == false then
-      ordersToRemove[#ordersToRemove + 1] = orders[i]
-    else
-      if validOrders[orders[i].order] ~= true then
-        validOrders[orders[i].order] = true
-        local weight = MimicRepeatOrders.validOrders[orders[i].order].weight or 1
-        validOrdersCount = validOrdersCount + weight
-      end
-    end
-  end
-  debugLog("Source ship %s has %s valid repeat orders and %s invalid repeat orders to remove from a total of %s repeat orders",
-    getShipName(sourceId), validOrdersCount, #ordersToRemove, #orders)
-  if (validOrdersCount < 2) then
-    return false, { info = "NoEnoughValidRepeatOrders" }
-  end
-  if #ordersToRemove > 0 then
-    debugLog("Source ship %s has %s invalid repeat orders to remove", getShipName(sourceId), #ordersToRemove)
-    for i = #ordersToRemove, 1, -1 do
-      local order = ordersToRemove[i]
-      traceLog(" Removing invalid repeat order %s at index %s", order.order, order.idx)
-      C.RemoveOrder(sourceId, order.idx, true, false)
-    end
-  end
+  debugLog("Source ship %s has %s repeat orders", getShipName(sourceId), #orders)
   return true
 end
 
@@ -362,8 +322,8 @@ function MimicRepeatOrders.getArgs()
 end
 
 -- Generic order-param helpers -- driven entirely by GetOrderParams' own type metadata
--- (type/value/inputparams), so adding support for a new order id never requires
--- per-param bookkeeping here, only adding it to validOrders' enabled/weight policy.
+-- (type/value/inputparams), so any order id the AI/engine reports is clonable without
+-- per-order or per-param bookkeeping here.
 
 local function findWareTransportType(orderParams)
   for i = 1, #orderParams do
@@ -406,11 +366,9 @@ function MimicRepeatOrders.collectSourceWaresTransportTypes(orders)
   local transportTypes = {}
   for i = 1, #orders do
     local order = orders[i]
-    if MimicRepeatOrders.validOrders[order.order] ~= nil then
-      local transportType = findWareTransportType(GetOrderParams(sourceId, order.idx))
-      if transportType ~= nil then
-        transportTypes[transportType] = true
-      end
+    local transportType = findWareTransportType(GetOrderParams(sourceId, order.idx))
+    if transportType ~= nil then
+      transportTypes[transportType] = true
     end
   end
 
@@ -423,7 +381,7 @@ end
 
 function MimicRepeatOrders.cloneOrdersPrepare()
   MimicRepeatOrders.targetIds = {}
-  local valid, errorData = MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
+  local valid, errorData = MimicRepeatOrders.ValidateSourceShip()
   if not valid then
     return false, errorData
   end
@@ -476,6 +434,14 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
   end
   debugLog("Comparing %s source orders to %s target orders with targetId %s", #sourceOrders, #targetOrders, targetId)
   if #sourceOrders ~= #targetOrders then
+    local sourceContent, targetContent = {}, {}
+    for i = 1, #sourceOrders do
+      sourceContent[i] = sourceOrders[i].order
+    end
+    for i = 1, #targetOrders do
+      targetContent[i] = targetOrders[i].order
+    end
+    traceLog(" Source orders: [%s], Target orders: [%s]", table.concat(sourceContent, ", "), table.concat(targetContent, ", "))
     return false
   end
   for i = 1, #sourceOrders do
@@ -539,47 +505,42 @@ function MimicRepeatOrders.cloneOrdersExecute(skipResult)
         C.SetOrderLoop(targetId, 0, false)
         for j = 1, #sourceOrders do
           local order = sourceOrders[j]
-          local orderDef = MimicRepeatOrders.validOrders[order.order]
-          if orderDef == nil or not orderDef.enabled then
-            debugLog(" Unexpected not valid order %s", order.order)
-          else
-            local orderParams = GetOrderParams(MimicRepeatOrders.sourceId, order.idx)
-            local transportType = findWareTransportType(orderParams)
-            local sourceCapacity = transportType and MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transportType) or nil
-            if orderParams ~= nil and #orderParams > 0 then
-              local newOrderIdx = C.CreateOrder(targetId, order.order, false)
-              if newOrderIdx and newOrderIdx > 0 then
-                local targetCapacity = transportType and MimicRepeatOrders.getCargoCapacity(targetId, transportType) or nil
-                for paramIdx = 1, #orderParams do
-                  local sourceParam = orderParams[paramIdx]
-                  if sourceParam.type ~= "internal" then
-                    if sourceParam.type == "list" then
-                      for l = 1, #(sourceParam.value or {}) do
-                        traceLog("   Setting list item #%s to value: '%s' at param index %s", l, sourceParam.value[l], paramIdx)
-                        SetOrderParam(targetId, newOrderIdx, paramIdx, nil, sourceParam.value[l])
-                      end
-                    else
-                      local value = sourceParam.value
-                      if sourceParam.type == "money" then
-                        value = value * 100
-                      elseif sourceParam.type == "position" then
-                        local sourcePosition = value
-                        value = { ConvertStringToLuaID(tostring(sourcePosition[1])),
-                          { sourcePosition[2].x, sourcePosition[2].y, sourcePosition[2].z } }
-                      elseif isCargoBoundParam(sourceParam, sourceCapacity) then
-                        value = (sourceCapacity > 0) and math.floor(value / sourceCapacity * targetCapacity) or 0
-                      end
-                      traceLog("   Setting param[%s] %s (%s) to value: '%s'", paramIdx, sourceParam.name, sourceParam.type, value)
-                      SetOrderParam(targetId, newOrderIdx, paramIdx, nil, value)
+          local orderParams = GetOrderParams(MimicRepeatOrders.sourceId, order.idx)
+          local transportType = findWareTransportType(orderParams)
+          local sourceCapacity = transportType and MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transportType) or nil
+          if orderParams ~= nil and #orderParams > 0 then
+            local newOrderIdx = C.CreateOrder(targetId, order.order, false)
+            if newOrderIdx and newOrderIdx > 0 then
+              local targetCapacity = transportType and MimicRepeatOrders.getCargoCapacity(targetId, transportType) or nil
+              for paramIdx = 1, #orderParams do
+                local sourceParam = orderParams[paramIdx]
+                if sourceParam.type ~= "internal" then
+                  if sourceParam.type == "list" then
+                    for l = 1, #(sourceParam.value or {}) do
+                      traceLog("   Setting list item #%s to value: '%s' at param index %s", l, sourceParam.value[l], paramIdx)
+                      SetOrderParam(targetId, newOrderIdx, paramIdx, nil, sourceParam.value[l])
                     end
+                  else
+                    local value = sourceParam.value
+                    if sourceParam.type == "money" then
+                      value = value * 100
+                    elseif sourceParam.type == "position" then
+                      local sourcePosition = value
+                      value = { ConvertStringToLuaID(tostring(sourcePosition[1])),
+                        { sourcePosition[2].x, sourcePosition[2].y, sourcePosition[2].z } }
+                    elseif isCargoBoundParam(sourceParam, sourceCapacity) then
+                      value = (sourceCapacity > 0) and math.floor(value / sourceCapacity * targetCapacity) or 0
+                    end
+                    traceLog("   Setting param[%s] %s (%s) to value: '%s'", paramIdx, sourceParam.name, sourceParam.type, value)
+                    SetOrderParam(targetId, newOrderIdx, paramIdx, nil, value)
                   end
                 end
-                C.EnableOrder(targetId, newOrderIdx)
-                processedOrders = processedOrders + 1
-                debugLog(" Successfully created order %s on target %s", order.order, getShipName(targetId))
-              else
-                debugLog(" Failed to create order %s on target %s", order.order, getShipName(targetId))
               end
+              C.EnableOrder(targetId, newOrderIdx)
+              processedOrders = processedOrders + 1
+              debugLog(" Successfully created order %s on target %s", order.order, getShipName(targetId))
+            else
+              debugLog(" Failed to create order %s on target %s", order.order, getShipName(targetId))
             end
           end
         end
@@ -667,7 +628,7 @@ function MimicRepeatOrders.repeatOrdersCommandersRefresh()
     local commanderId = toUniverseId(commanders[i])
     if (commanderId ~= nil) then
       MimicRepeatOrders.sourceId = commanderId
-      local valid, errorData = MimicRepeatOrders.ValidateSourceShipAndCleanupOrders()
+      local valid, errorData = MimicRepeatOrders.ValidateSourceShip()
       local subordinatesCount = MimicRepeatOrders.countSubordinates()
       debugLog(" Refreshing commander %s validity: %s, error: %s, subordinates: %s",
         getShipName(commanderId), valid, errorData and errorData.info, subordinatesCount)
@@ -753,12 +714,6 @@ function MimicRepeatOrders.addOrderToQueue()
     return
   end
 
-  local orderDef = MimicRepeatOrders.validOrders[order]
-  if orderDef == nil or orderDef.enabled == false then
-    MimicRepeatOrders.reportError({ info = "invalid_order" })
-    return
-  end
-
   debugLog("Adding order %s to ship %s", order, getShipName(shipId))
 
   local params = args.params
@@ -791,6 +746,7 @@ function MimicRepeatOrders.addOrderToQueue()
     debugLog(" Successfully created order %s on target %s", order, getShipName(shipId))
   else
     debugLog(" Failed to create order %s on target %s", order, getShipName(shipId))
+    MimicRepeatOrders.reportError({ info = "invalid_order" })
   end
 end
 
@@ -821,21 +777,6 @@ function MimicRepeatOrders.ProcessRequest(_, _)
   end
 end
 
-function MimicRepeatOrders.OrderNamesCollect()
-  for orderDef, _ in pairs(MimicRepeatOrders.validOrders) do
-    local buf = ffi.new("OrderDefinition")
-    local found = C.GetOrderDefinition(buf, orderDef)
-    if found then
-      local orderName = ffi.string(buf.name)
-      MimicRepeatOrders.validOrders[orderDef].name = orderName
-      MimicRepeatOrders.validOrders[orderDef].enabled = true
-      debugLog("Order definition %s resolved to name %s", orderDef, MimicRepeatOrders.validOrders[orderDef].name)
-    else
-      debugLog("Order definition %s could not be resolved", orderDef)
-    end
-  end
-end
-
 function MimicRepeatOrders.Init()
   getPlayerId()
   ---@diagnostic disable-next-line: undefined-global
@@ -845,7 +786,6 @@ function MimicRepeatOrders.Init()
   MimicRepeatOrders.onDebugLevelChanged()
   MimicRepeatOrders.mapMenu = Lib.Get_Egosoft_Menu("MapMenu")
   debugLog("MapMenu is %s", MimicRepeatOrders.mapMenu)
-  MimicRepeatOrders.OrderNamesCollect()
   MimicRepeatOrders.loopOrdersSkillLimit = C.GetOrderLoopSkillLimit() * 3
   SetNPCBlackboard(MimicRepeatOrders.playerId, "$MimicRepeatOrdersLoopOrdersSkillLimit", MimicRepeatOrders.loopOrdersSkillLimit)
   AddUITriggeredEvent("MimicRepeatOrders", "Reloaded")
