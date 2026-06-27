@@ -500,6 +500,23 @@ function MimicRepeatOrders.cloneOrdersPrepare()
   return true
 end
 
+local function areListItemsEqualUnordered(sourceItems, targetItems)
+  local counts = {}
+  for j = 1, #sourceItems do
+    local key = tostring(sourceItems[j])
+    counts[key] = (counts[key] or 0) + 1
+  end
+  for j = 1, #targetItems do
+    local key = tostring(targetItems[j])
+    if not counts[key] or counts[key] == 0 then
+      debugTrace("trace", "   Target item #" .. tostring(j) .. ": '" .. tostring(targetItems[j]) .. "' has no matching source item")
+      return false
+    end
+    counts[key] = counts[key] - 1
+  end
+  return true
+end
+
 function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, isOneShip)
   if targetId ~= nil then
     if MimicRepeatOrders.isLoopEnabled(targetId) == false then
@@ -535,20 +552,9 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
             debugTrace("trace", "   Source items count: '" .. tostring(#sourceItems) .. "' does not match target items count: '" .. tostring(#targetItems) .. "'")
             return false
           end
-          for j = 1, #sourceItems do
-            debugTrace("trace",
-              "   Comparing source item #" ..
-              tostring(j) ..
-              ": '" ..
-              tostring(sourceItems[j]) ..
-              "' to target item #" ..
-              tostring(j) .. ": '" .. tostring(targetItems[j]) .. "' = " .. tostring(tostring(sourceItems[j]) == tostring(targetItems[j])))
-            if tostring(sourceItems[j]) ~= tostring(targetItems[j]) then
-              debugTrace("trace",
-                "   Source item #" ..
-                tostring(j) .. ": '" .. tostring(sourceItems[j]) .. "' does not match target item #" .. tostring(j) .. ": '" .. tostring(targetItems[j]) .. "'")
-              return false
-            end
+          if not areListItemsEqualUnordered(sourceItems, targetItems) then
+            debugTrace("trace", "   Target items do not match source items")
+            return false
           end
         else
           local sourceValue = sourceParams[paramDef.idx].value
