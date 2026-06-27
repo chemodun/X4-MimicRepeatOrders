@@ -64,107 +64,19 @@ local MimicRepeatOrders = {
   queueArgs = {},
   playerId = 0,
   mapMenu = {},
+  -- Per-order policy only -- which order ids are safe to mimic at all (enabled/weight).
+  -- Param comparison/cloning is fully generic (driven by GetOrderParams' own type metadata),
+  -- so no per-order param/converter/wareIdx bookkeeping is needed here anymore.
   validOrders = {
-    SingleBuy            = {
-      enabled = false,
-      weight = 1,
-      name = "",
-      wareIdx = 1,
-      params = {
-        ware = { idx = 1 },
-        locations = { idx = 4, converter = "listOfString" },
-        maxamount = { idx = 5, converter = "viaCargo" },
-        pricethreshold = { idx = 7, converter = "price" }
-      },
-      paramsOrder = { "ware", "locations", "maxamount", "pricethreshold" }
-    },
-    SingleSell           = {
-      enabled = false,
-      weight = 1,
-      name = "",
-      wareIdx = 1,
-      params = {
-        ware = { idx = 1 },
-        locations = { idx = 4, converter = "listOfString" },
-        maxamount = { idx = 5, converter = "viaCargo" },
-        pricethreshold = { idx = 7, converter = "price" }
-      },
-      paramsOrder = { "ware", "locations", "maxamount", "pricethreshold" }
-    },
-    MiningPlayer         = {
-      enabled = false,
-      weight = 1,
-      name = "",
-      wareIdx = 3,
-      params = {
-        destination = { idx = 1, converter = "position" },
-        ware = { idx = 3 }
-      },
-      paramsOrder = { "destination", "ware" }
-    },
-    MiningPlayerSector   = {
-      enabled = false,
-      weight = 1,
-      name = "",
-      wareIdx = 2,
-      params = {
-        location = { idx = 1, compare = "asString" },
-        ware = { idx = 2 }
-      },
-      paramsOrder = { "location", "ware" }
-    },
-    CollectDropsInRadius = {
-      enabled = false,
-      weight = 2,
-      name = "",
-      wareIdx = nil,
-      params = {
-        destination = { idx = 1, converter = "position" },
-      },
-      paramsOrder = { "destination" }
-    },
-    DepositInventory = {
-      enabled = false,
-      weight = 1,
-      name = "",
-      wareIdx = nil,
-      params = {
-        destination = { idx = 1, compare = "asObjectId" },
-      },
-      paramsOrder = { "destination" }
-    },
-    SalvageInRadius = {
-      enabled = false,
-      weight = 1,
-      name = "",
-      wareIdx = nil,
-      params = {
-        destination = { idx = 1, converter = "position" },
-        radius = { idx = 3 },
-      },
-      paramsOrder = { "destination", "radius" }
-    },
-    SalvageDeliver_NoTrade = {
-      enabled = false,
-      weight = 1,
-      name = "",
-      wareIdx = nil,
-      params = {
-        destination = { idx = 1, compare = "asObjectId" },
-      },
-      paramsOrder = { "destination" }
-    },
-    ExploreUpdate = {
-      enabled = false,
-      weight = 2,
-      name = "",
-      wareIdx = nil,
-      params = {
-        destination = { idx = 2, converter = "position" },
-        radius = { idx = 3 },
-      },
-      paramsOrder = { "destination", "radius" }
-    },
+    SingleBuy              = { enabled = false, weight = 1, name = "" },
+    SingleSell             = { enabled = false, weight = 1, name = "" },
+    MiningPlayer           = { enabled = false, weight = 1, name = "" },
+    MiningPlayerSector     = { enabled = false, weight = 1, name = "" },
+    CollectDropsInRadius   = { enabled = false, weight = 2, name = "" },
+    DepositInventory       = { enabled = false, weight = 1, name = "" },
+    SalvageInRadius        = { enabled = false, weight = 1, name = "" },
+    SalvageDeliver_NoTrade = { enabled = false, weight = 1, name = "" },
+    ExploreUpdate          = { enabled = false, weight = 2, name = "" },
   },
   sourceId = 0,
   loopOrdersSkillLimit = 0,
@@ -449,30 +361,56 @@ function MimicRepeatOrders.getArgs()
   return false
 end
 
+-- Generic order-param helpers -- driven entirely by GetOrderParams' own type metadata
+-- (type/value/inputparams), so adding support for a new order id never requires
+-- per-param bookkeeping here, only adding it to validOrders' enabled/weight policy.
+
+local function findWareTransportType(orderParams)
+  for i = 1, #orderParams do
+    local p = orderParams[i]
+    if p.type == "ware" and p.value ~= nil then
+      return GetWareData(p.value, "transport")
+    end
+  end
+  return nil
+end
+
+local function positionsEqual(sourceValue, targetValue)
+  if tostring(sourceValue[1]) ~= tostring(targetValue[1]) then
+    return false
+  end
+  local sourceOffset, targetOffset = sourceValue[2], targetValue[2]
+  for _, axis in ipairs({ "x", "y", "z" }) do
+    if math.abs(sourceOffset[axis] - targetOffset[axis]) > 0.01 then
+      return false
+    end
+  end
+  return true
+end
+
+-- true when this numeric param's own bound matches the ship's cargo capacity for the
+-- order's ware -- i.e. it's a cargo-amount param (maxamount/minamount-style), not an
+-- order-fixed bound like radius.
+local function isCargoBoundParam(paramData, sourceCapacity)
+  return paramData.type == "number" and sourceCapacity ~= nil
+      and paramData.inputparams ~= nil and paramData.inputparams.max ~= nil
+      and math.abs(paramData.inputparams.max - sourceCapacity) <= 0.01
+end
+
 function MimicRepeatOrders.collectSourceWaresTransportTypes(orders)
   local sourceId = MimicRepeatOrders.sourceId
   local orders = orders
   if orders == nil or type(orders) ~= "table" then
     orders = MimicRepeatOrders.getRepeatOrders(sourceId)
   end
-  local wares = {}
+  local transportTypes = {}
   for i = 1, #orders do
     local order = orders[i]
     if MimicRepeatOrders.validOrders[order.order] ~= nil then
-      local params = GetOrderParams(sourceId, order.idx)
-      local wareIdx = MimicRepeatOrders.validOrders[order.order].wareIdx
-      if wareIdx ~= nil and params[wareIdx] ~= nil then
-        local wareId = params[wareIdx].value
-        wares[wareId] = true
+      local transportType = findWareTransportType(GetOrderParams(sourceId, order.idx))
+      if transportType ~= nil then
+        transportTypes[transportType] = true
       end
-    end
-  end
-
-  local transportTypes = {}
-  for wareId, _ in pairs(wares) do
-    local transportType = GetWareData(wareId, "transport")
-    if transportType ~= nil and transportTypes[transportType] == nil then
-      transportTypes[transportType] = true
     end
   end
 
@@ -549,99 +487,31 @@ function MimicRepeatOrders.isOrdersEqual(sourceOrders, targetId, targetOrders, i
     end
     local sourceParams = GetOrderParams(MimicRepeatOrders.sourceId, sourceOrder.idx)
     local targetParams = targetOrder.params or GetOrderParams(targetId, targetOrder.idx)
-    local paramsDef = MimicRepeatOrders.validOrders[sourceOrder.order].params
-    local wareIdx = MimicRepeatOrders.validOrders[sourceOrder.order].wareIdx
-    if paramsDef ~= nil then
-      for paramName, paramDef in pairs(paramsDef) do
-        if paramDef.converter == "listOfString" then
-          local sourceItems = sourceParams[paramDef.idx].value or {}
-          local targetItems = targetParams[paramDef.idx].value or {}
-          traceLog("  Comparing source items: '%s' to target items: '%s'", #sourceItems, #targetItems)
-          if #sourceItems ~= #targetItems then
-            traceLog("   Source items count: '%s' does not match target items count: '%s'", #sourceItems, #targetItems)
-            return false
-          end
-          if not areListItemsEqualUnordered(sourceItems, targetItems) then
-            traceLog("   Target items do not match source items")
-            return false
-          end
+    local transportType = findWareTransportType(sourceParams)
+    local sourceCapacity = transportType and MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transportType) or nil
+    local targetCapacity = (transportType and not isOneShip) and MimicRepeatOrders.getCargoCapacity(targetId, transportType) or nil
+    for paramIdx = 1, #sourceParams do
+      local sourceParam = sourceParams[paramIdx]
+      local targetParam = targetParams[paramIdx]
+      if sourceParam.type ~= "internal" then
+        local equal
+        if targetParam == nil then
+          equal = false
+        elseif sourceParam.type == "list" then
+          local sourceItems, targetItems = sourceParam.value or {}, targetParam.value or {}
+          equal = #sourceItems == #targetItems and areListItemsEqualUnordered(sourceItems, targetItems)
+        elseif sourceParam.type == "position" then
+          equal = positionsEqual(sourceParam.value, targetParam.value)
+        elseif not isOneShip and isCargoBoundParam(sourceParam, sourceCapacity) then
+          local expected = (sourceCapacity > 0) and (sourceParam.value / sourceCapacity * targetCapacity) or 0
+          equal = math.abs(targetParam.value - expected) <= 0.01
         else
-          local sourceValue = sourceParams[paramDef.idx].value
-          local targetValue = targetParams[paramDef.idx].value
-          traceLog("  Comparing source param: '%s' value: '%s' to target value: '%s'", paramName, sourceValue, targetValue)
-          if paramDef.converter == "viaCargo" then
-            if sourceValue > 0 and targetValue == 0 then
-              traceLog("   Source value: '%s' does not match target value '%s'", sourceValue, targetValue)
-              return false
-            elseif sourceValue == 0 and targetValue > 0 then
-              traceLog("   Source value: '%s' does not match target value: '%s'", sourceValue, targetValue)
-              return false
-            elseif sourceValue == 0 and targetValue > 0 then
-              traceLog("   Source value: '%s' does not match target value: '%s'", sourceValue, targetValue)
-              return false
-            elseif sourceValue == 0 and targetValue > 0 then
-              traceLog("   Source value: '%s' does not match target value: '%s'", sourceValue, targetValue)
-              return false
-            elseif sourceValue > 0 and targetValue > 0 then
-              traceLog("   isOneShip: '%s' source value: '%s' vs target value: '%s'", isOneShip, sourceValue, targetValue)
-              if isOneShip and sourceValue ~= targetValue then
-                traceLog("   Is One Ship. Source value: '%s' does not match target value: '%s'", sourceValue, targetValue)
-                return false
-              end
-              if not isOneShip and wareIdx ~= nil then
-                local sourceWareId = sourceParams[wareIdx].value
-                local targetWareId = targetParams[wareIdx].value
-                if sourceWareId ~= targetWareId then
-                  traceLog("   Source ware ID: '%s' does not match target ware ID: '%s'", sourceWareId, targetWareId)
-                  return false
-                end
-                local transporttype = GetWareData(sourceWareId, "transport")
-                local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
-                local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
-                traceLog("   Transport type: '%s' source cargo capacity: '%s' vs target cargo capacity: '%s'",
-                  transporttype, sourceCargoCapacity, targetCargoCapacity)
-                local calculatedTargetValue = (sourceCargoCapacity > 0) and math.floor(sourceValue * targetCargoCapacity / sourceCargoCapacity) or 0
-                traceLog("   Target value: '%s' vs calculated target value: '%s'", targetValue, calculatedTargetValue)
-
-                if math.abs(targetValue - calculatedTargetValue) > 0.01 then
-                  traceLog("   Target value: '%s' does not match calculated target value: '%s'", targetValue, calculatedTargetValue)
-                  return false
-                end
-              end
-            end
-          elseif paramDef.converter == "position" then
-            local sourceRefObject = sourceValue[1]
-            local targetRefObject = targetValue[1]
-            traceLog("   Comparing source position ref object: '%s' to target ref object: '%s'", sourceRefObject, targetRefObject)
-            if tostring(sourceRefObject) ~= tostring(targetRefObject) then
-              traceLog("   Source position ref object: '%s' does not match target ref object: '%s'", sourceRefObject, targetRefObject)
-              return false
-            end
-            local sourceOffset = sourceValue[2]
-            local targetOffset = targetValue[2]
-            local axises = { "x", "y", "z" }
-            for j = 1, 3 do
-              local axis = axises[j]
-              traceLog("   Comparing source position at axis %s '%s' to target position '%s'", axis, sourceOffset[axis], targetOffset[axis])
-              if math.abs(sourceOffset[axis] - targetOffset[axis]) > 0.01 then
-                traceLog("   Source position at axis %s '%s' does not match target position '%s'", axis, sourceOffset[axis], targetOffset[axis])
-                return false
-              end
-            end
-          else
-            traceLog("   Comparing source value: '%s' to target value: '%s'", sourceValue, targetValue)
-            if (paramDef.compare == "asString") then
-              sourceValue = tostring(sourceValue)
-              targetValue = tostring(targetValue)
-            elseif (paramDef.compare == "asObjectId") then
-              sourceValue = ConvertStringTo64Bit(tostring(sourceValue))
-              targetValue = ConvertStringTo64Bit(tostring(targetValue))
-            end
-            if sourceValue ~= targetValue then
-              traceLog("   Source value '%s' does not match target value '%s'", sourceValue, targetValue)
-              return false
-            end
-          end
+          equal = tostring(sourceParam.value) == tostring(targetParam.value)
+        end
+        traceLog("  Comparing param[%s] %s (%s): source=%s target=%s -> %s",
+          paramIdx, sourceParam.name, sourceParam.type, sourceParam.value, targetParam and targetParam.value, equal)
+        if not equal then
+          return false
         end
       end
     end
@@ -674,56 +544,34 @@ function MimicRepeatOrders.cloneOrdersExecute(skipResult)
             debugLog(" Unexpected not valid order %s", order.order)
           else
             local orderParams = GetOrderParams(MimicRepeatOrders.sourceId, order.idx)
-            local orderParamsDefs = orderDef.params
-            local orderParamsDefsOrder = orderDef.paramsOrder
-            if (orderParams ~= nil and #orderParams > 0 and orderParamsDefs ~= nil and orderParamsDefsOrder ~= nil and #orderParamsDefsOrder > 0) then
+            local transportType = findWareTransportType(orderParams)
+            local sourceCapacity = transportType and MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transportType) or nil
+            if orderParams ~= nil and #orderParams > 0 then
               local newOrderIdx = C.CreateOrder(targetId, order.order, false)
               if newOrderIdx and newOrderIdx > 0 then
-                for k = 1, #orderParamsDefsOrder do
-                  local orderParamName = orderParamsDefsOrder[k]
-                  local orderParamDef = orderParamsDefs[orderParamName]
-                  traceLog(" Processing order param %s with definition %s", orderParamName, orderParamDef)
-                  local orderParam = orderParams[orderParamDef.idx]
-                  traceLog("  Setting order param[%s] %s to value: '%s' with definition %s and converter %s",
-                    orderParamDef.idx, orderParam.name, orderParam.value, orderParamDef, orderParamDef and orderParamDef.converter)
-                  if orderParamDef.converter == "listOfString" then
-                    for l = 1, #orderParam.value do
-                      traceLog("   Setting list item #%s to value: '%s' at order index %s param index %s",
-                        l, orderParam.value[l], newOrderIdx, orderParamDef.idx)
-                      SetOrderParam(targetId, newOrderIdx, orderParamDef.idx, nil, orderParam.value[l])
-                    end
-                  else
-                    local value = orderParam.value
-                    if orderParamDef.converter == "viaCargo" then
-                      if value > 0 then
-                        local wareIdx = orderDef.wareIdx
-                        if (wareIdx ~= nil) then
-                          local wareId = orderParams[wareIdx].value
-                          local transporttype = GetWareData(wareId, "transport")
-                          local sourceCargoCapacity = MimicRepeatOrders.getCargoCapacity(MimicRepeatOrders.sourceId, transporttype)
-                          local targetCargoCapacity = MimicRepeatOrders.getCargoCapacity(targetId, transporttype)
-                          traceLog("   Transport type: '%s' source cargo capacity: '%s' vs target cargo capacity: '%s'",
-                            transporttype, sourceCargoCapacity, targetCargoCapacity)
-                          value = (sourceCargoCapacity > 0) and math.floor(orderParam.value / sourceCargoCapacity * targetCargoCapacity) or 0
-                          traceLog("   Converted viaCargo value: '%s' for ware: '%s'", value, wareId)
-                        end
+                local targetCapacity = transportType and MimicRepeatOrders.getCargoCapacity(targetId, transportType) or nil
+                for paramIdx = 1, #orderParams do
+                  local sourceParam = orderParams[paramIdx]
+                  if sourceParam.type ~= "internal" then
+                    if sourceParam.type == "list" then
+                      for l = 1, #(sourceParam.value or {}) do
+                        traceLog("   Setting list item #%s to value: '%s' at param index %s", l, sourceParam.value[l], paramIdx)
+                        SetOrderParam(targetId, newOrderIdx, paramIdx, nil, sourceParam.value[l])
                       end
-                    elseif orderParamDef.converter == "price" then
-                      value = orderParam.value * 100
-                    elseif orderParamDef.converter == "position" then
-                      local sourcePosition = orderParam.value
-                      local targetPosition = {}
-                      targetPosition[1] = ConvertStringToLuaID(tostring(sourcePosition[1]))
-                      traceLog("   Preparing position ref object: %s", targetPosition[1])
-                      targetPosition[2] = {}
-                      targetPosition[2][1] = sourcePosition[2].x
-                      targetPosition[2][2] = sourcePosition[2].y
-                      targetPosition[2][3] = sourcePosition[2].z
-                      traceLog("   Preparing position offset: x=%.2f, y=%.2f, z=%.2f", targetPosition[2][1], targetPosition[2][2], targetPosition[2][3])
-                      value = targetPosition
+                    else
+                      local value = sourceParam.value
+                      if sourceParam.type == "money" then
+                        value = value * 100
+                      elseif sourceParam.type == "position" then
+                        local sourcePosition = value
+                        value = { ConvertStringToLuaID(tostring(sourcePosition[1])),
+                          { sourcePosition[2].x, sourcePosition[2].y, sourcePosition[2].z } }
+                      elseif isCargoBoundParam(sourceParam, sourceCapacity) then
+                        value = (sourceCapacity > 0) and math.floor(value / sourceCapacity * targetCapacity) or 0
+                      end
+                      traceLog("   Setting param[%s] %s (%s) to value: '%s'", paramIdx, sourceParam.name, sourceParam.type, value)
+                      SetOrderParam(targetId, newOrderIdx, paramIdx, nil, value)
                     end
-                    traceLog("   Final value to set: '%s' at order index %s param index %s", value, newOrderIdx, orderParamDef.idx)
-                    SetOrderParam(targetId, newOrderIdx, orderParamDef.idx, nil, value)
                   end
                 end
                 C.EnableOrder(targetId, newOrderIdx)
@@ -913,41 +761,29 @@ function MimicRepeatOrders.addOrderToQueue()
 
   debugLog("Adding order %s to ship %s", order, getShipName(shipId))
 
-  local orderParamsDefs = orderDef.params
-  local orderParamsDefsOrder = orderDef.paramsOrder
-
   local params = args.params
   if params == nil or type(params) ~= "table" then
     MimicRepeatOrders.reportError({ info = "missing_params" })
     return
   end
 
-
-  for i = 1, #orderParamsDefsOrder do
-    local key = orderParamsDefsOrder[i]
-    if params[key] == nil then
-      MimicRepeatOrders.reportError({ info = "missing_param", detail = "Missing parameter: " .. tostring(key) })
-      return
-    end
-    traceLog(" Param %s value: '%s'", key, params[key])
-  end
-
-
   local newOrderIdx = C.CreateOrder(shipId, order, false)
   if newOrderIdx and newOrderIdx > 0 then
-    for i = 1, #orderParamsDefsOrder do
-      local name = orderParamsDefsOrder[i]
-      local orderParamDef = orderParamsDefs[name]
-      local value = params[name]
-      if orderParamDef ~= nil and value ~= nil then
-        if orderParamDef.converter == "listOfString" then
+    -- Sets whatever the caller provides by name, leaving anything not provided at
+    -- its engine default -- no curated required-param list anymore.
+    local orderParams = GetOrderParams(shipId, newOrderIdx)
+    for paramIdx = 1, #orderParams do
+      local paramData = orderParams[paramIdx]
+      local value = params[paramData.name]
+      if paramData.type ~= "internal" and value ~= nil then
+        if paramData.type == "list" then
           for k = 1, #value do
-            traceLog(" Setting order param[%s] %s to value: '%s' as part of listOfString", orderParamDef.idx, name, value[k])
-            SetOrderParam(shipId, newOrderIdx, orderParamDef.idx, nil, value[k])
+            traceLog(" Setting order param[%s] %s to value: '%s' as part of list", paramIdx, paramData.name, value[k])
+            SetOrderParam(shipId, newOrderIdx, paramIdx, nil, value[k])
           end
         else
-          traceLog(" Setting order param[%s] %s to value: '%s'", orderParamDef.idx, name, value)
-          SetOrderParam(shipId, newOrderIdx, orderParamDef.idx, nil, value)
+          traceLog(" Setting order param[%s] %s to value: '%s'", paramIdx, paramData.name, value)
+          SetOrderParam(shipId, newOrderIdx, paramIdx, nil, value)
         end
       end
     end
